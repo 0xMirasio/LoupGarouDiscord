@@ -7,8 +7,7 @@ bot.on('ready', function () {
   console.log("Connected")
 })
 
-bot.login('Njk5MDE0NDY0Nzc5MDU5MjEx.XpWdjQ.jQ_EjOcBcJuZihVYgQP1x--rZd0')
-
+bot.login('<your token here')
 
 // VAR GLOBAL SECTION
 var nbPlayer = 0;
@@ -21,11 +20,17 @@ var aVote = []  //tableau pour savoir qui a voté pour qui pour le tour actuel
 var PM=  [] // tableau pour sauvegarder les object "message" de l'API Discord afin de pouvoir MP les loups
 var loupCanKill = 0; // variable pour savoir si les loups peuvent tuer
 var VoyanteCanReveal =  0 // variable pour savoir si la voyante peut lire un role 
-
+var SorcerState = 0;
+var SorcerRevive=  1;
+var SorcerKill = 1;
+var LastKilled;
+var max,index 
+var cpt=0;
 //END OF VAR GLOBAL SECTION
 
 // START OF EVENT FUNCTION
 
+// OK (/loupStart)
 bot.on('message', message => {
 if (message.content === '/loupStart') {
 	if (nbPlayer < 1) {
@@ -54,22 +59,22 @@ if (message.content === '/loupStart') {
 }
 })
 
-// OK
+// OK (/play)
 bot.on('message', message => {	
 	var nomJoueur = message.author.username;
 	var idJoueur = message.author;
 	if (message.content === '/play') {
 		if(hasStarted == 0) {
-				if(!tool.contains(nomJoueur, Players)){
+				//if(!tool.contains(nomJoueur, Players)){
 					Players.push(new Player(nomJoueur,idJoueur))
 					PM.push(message);
 					nbPlayer = Players.length
 					message.channel.send("Ajout de **" + nomJoueur + "** à la partie");
 					message.channel.send("Nombre de joueurs actuels : " + nbPlayer);
-				}
-				else{
-					message.channel.send("Joueur déjà présent  !");
-				}	
+				//}
+				//else{
+				//	message.channel.send("Joueur déjà présent  !");
+				//}	
 		}
 		else {
 			message.channel.send("La partie à déja commencé, tu ne peux rejoindre ! ");
@@ -78,12 +83,18 @@ bot.on('message', message => {
 		
 })
 
-// OK
+// OK (/kill)
 bot.on('message', message => {	
 	if (message.content.startsWith('/kill')) {
+		var namePlayer = message.content.split(" ")[1];
+		var check = tool.checkPlayer(namePlayer, Players);
+		if (check == -1) {
+			message.reply("Ce joueur n'existe pas !");
+		}
+		else {
 		var index = tool.checkRole(message.author.username, "Loup", Players);
         if(index != -1 && Players[index].estVivant == 1 && loupCanKill == 1){
-            var namePlayer = message.content.split(" ")[1];
+           
 			voter(message.author.username, namePlayer);
         }else{
             message.reply("Vous n'avez pas le droit d'utilser cette commande !");
@@ -102,17 +113,18 @@ bot.on('message', message => {
 				}
 			}
 		}
+	}
 	} 
 })
 
-// TODO : Rajoutez tout quand ca sera fini
+// TODO : Rajoutez toute les commandes (help) quand ca sera fini
 bot.on('message', message => {	
 			if (message.content === '/help') {
 			message.channel.send('Liste des commandes :  \n **/loupStart **(Débute la partie) \n** /loupStop** (Termine la partie) \n **/play** (Vous ajoute à la partie) \n **/leave** (Quitte la partie) \n **/voteKill** [PLAYER] (votez un joueur que vous pensez être un loup) \n **/elire** [PLAYER] (votez pour un maire)\n **/garouKill** [PLAYER] (Envoyez un MP à LoupGarou-Bot pour tuez un joueur pendant la nuit')
 			} 
 })
 
-// TODO : quand toute sera fini, remettre tout les valeurs a 
+// TODO : quand toute sera fini, remettre tout les valeurs a zero
 bot.on('message', message => {	
 	if (message.content === '/loupStop') {
 		message.channel.send("Fin de la partie...");
@@ -124,25 +136,109 @@ bot.on('message', message => {
 	} 
 })
 
-// TODO : reveal the role of a player
+// OK : reveal the role of a player (voyante)
 bot.on('message', message => {	
 	if (message.content.startsWith('/reveal')) {
-		var playerToReveal = message.content.split(" ")[1]
-
+		var playerToReveal = message.content.split(" ")[1];
+		var res = tool.checkRole(message.author.username,"Voyante",Players);
+		var check = tool.checkPlayer(playerToReveal, Players);
+		if (check == -1) {
+			message.reply("Ce joueur n'existe pas !");
+		}
+		else {
+			for (i=0; i< Players.length ; i++) {
+				if (message.author.username == Players[i].nom) {
+					var voyant = Players[i];
+				}
+			}
+			if (res != -1 && voyant.estVivant == 1 && VoyanteCanReveal == 1) {
+				var role=  tool.reveal(playerToReveal, Players);
+				message.author.send(playerToReveal + ' est : '+ role);
+				VoyanteCanReveal = 0;
+			}
+			else {
+				message.reply("Vous n'avez pas le droit d'utilisez cette commande ! ");
+			}
+	}
 	} 
 })
-// OK
+
+
+//OK (Sorciere curse)
+bot.on('message', message => {	
+	if (message.content.startsWith('/curse')) {
+		var playerToDie = message.content.split(" ")[1]
+		var sorcer = ''
+		var check = tool.checkPlayer(playerToDie, Players);
+		if (check == -1) {
+			message.reply("Ce joueur n'existe pas !");
+		}
+		else {
+		for (i=0; i<Players.length; i++) {
+			if (message.author.username == Players[i].name) {
+				sorcer = Players[i];
+			}
+		}
+		if (Players[i].role == "Sorcière" &&  Players[i].estVivant == true &&  SorcerKill == 1) {
+			for (j=0; j<Players.length; j++) {
+				if (playerToDie == Players[j].nom) {
+					Players[j].estVivant = false;
+					SorcerKill = 0;
+				}
+			}
+		}
+		else {
+			message.reply("Vous n'avez pas le droit d'utilser cette commande !");
+		}
+	}
+	} 
+})
+
+// OK (Sorcière Revive)
+bot.on('message', message => {	
+	if (message.content.startsWith('/revive')) {
+		var playerToLive = message.content.split(" ")[1]
+		var sorcer = ''
+		var check = tool.checkPlayer(playerToLive, Players);
+		if (check == -1) {
+			message.reply("Ce joueur n'existe pas !");
+		}
+		else {
+		for (i=0; i<Players.length; i++) {
+			if (message.author.username == Players[i].name) {
+				sorcer = Players[i];
+			}
+		}
+		if (sorcer.role == "Sorcière" &&  sorcer.estVivant == true &&  SorcerRevive == 1 && LastKilled.nom != playerToLive) {
+			for (j=0; j<Players.length; j++) {
+				if (playerToLive == Players[j].nom && Players[j].estVivant == false && LastKilled.nom == Players[j].nom) {
+					sorcer.author.send("Tu as fait revivre " + playerToLive);
+					Players[j].estVivant = true;
+					SorcerRevive = 0;
+				}
+			}
+		}
+		else {
+			message.reply("Vous n'avez pas le droit d'utilser cette commande !");
+		}
+	}
+	} 
+})
+
+// OK (list)
 bot.on('message', message => {	
 	if (message.content === '/list') {
 		var fx= '';
 		for (i=0 ; i<Players.length ; i++) {
-			fx = Players[i].nom + "," +  fx;
+			if (Players[i].estVivant == 1) {
+				fx = Players[i].nom + "," +  fx;
+			}
 		}
-		message.channel.send("Les joueurs présents sont : **"+ fx+"**");
+		message.channel.send("Les joueurs vivants sont : **"+ fx+"**");
 	} 
 })
 
-// OK
+// OK (leave)
 bot.on('message', message => {    
     if (message.content === '/leave') {
         var joueur = message.author.username;
@@ -215,61 +311,97 @@ function voter(nomVotant, nomVote){
 
 function game_start(message) {
 
-	var cpt=1
-	while (hasStarted === 1) {
-		message.channel.send('DEBUT NUIT : '+ cpt);
-		message.channel.send('-------------------------------------------------------------------\n\n');
-		message.channel.send('\nLes loups ont 60s pour choisir leur victime...');
-		message.channel.send('/list');
-		loup_time(message);
-		cpt++;
-		break;
-	}
+	cpt++;
+	message.channel.send('DEBUT NUIT : '+ cpt);
+	message.channel.send('-------------------------------------------------------------------\n\n');
+	loupandvoyante_time(message);
 }
-function loup_time(message) {
+
+
+function loupandvoyante_time(message) {
+	message.channel.send('\nLes loups ont **45s** pour choisir leur victime...');
+	message.channel.send('\nLa voyante a **45s** pour reveler une personne...');
 	var timer = new time.Timer();
 	votes,aVote = tool.initVotes(nbPlayer,votes,aVote);
+	VoyanteCanReveal = 1;
 	loupCanKill = 1;
-	timer.start({countdown: true, startValues: {seconds: 60}});
+	timer.start({countdown: true, startValues: {seconds: 40}});
 	timer.addEventListener('secondsUpdated', function (e) {
-			if (timer.getTimeValues().toString().split("0:00:")[1] % 10 == 0) {
+			if (timer.getTimeValues().toString().split("0:00:")[1] % 10 == 0 && timer.getTimeValues().toString().split("0:00:")[1] != '00') {
 				message.channel.send(timer.getTimeValues().toString().split("0:00:")[1] +" seconds left !");
 			};
 		});
 	timer.addEventListener('targetAchieved', function (e) {
-		message.channel.send("Fin du temps !\n");
+		message.channel.send("**Fin du temps !\n**");
 		loupCanKill = 0;
-		var max = tool.resultatVote(votes);
-		if (max != 0)  {
-			var index = tool.checkEgalite(max, votes);
-			if (index == -1) {
-				message.channel.send("Les loups n'ont pas réussi a se départager! Personne ne meurs...");
+		VoyanteCanReveal = 0
+		max = tool.resultatVote(votes);
+		for (i=0; i<Players.length ; i++) {
+			if (Players[i].role == 'Sorcière') {
+				var player_sorcer = Players[i].nom;
 			}
-			message.channel.send("Les loups ont décidé d'éliminer " + Players[index].nom);
-			Players[index].estVivant = 0;
+		}
+		if (max != 0)  {
+			index = tool.checkEgalite(max, votes);
+			if (index == -1) {
+				sorciere_time(message,1,player_sorcer,index);
+			}
+			else {
+				Players[index].estVivant = false;
+				LastKilled = Players[index];
+				sorciere_time(message,2,player_sorcer,index);
+			}
 		}
 		else {
-			message.channel.send("les loups n'ont pas voulu tuer de villageois...");
+			sorciere_time(message,1,player_sorcer,index);
 		}
-		votes,aVote=tool.resetVotes(votes,aVote);
-		voyante_time(message);
-	})
-}
-function voyante_time(message) {
 		
-		var timer = new time.Timer();
-		VoyanteCanReveal = 1;
-		message.channel.send("\nLa Voyante à 30secondes pour utiliser son pouvoir afin de lire le role d'un joueur !");
-		message.channel.send('/list');
+	})
+
+	
+}
+
+function sorciere_time(message, state, name,index) {
+	var timer = new time.Timer();
+		SorcerState = 1;
+		message.channel.send("\nLa Sorcière à **30** secondes pour utiliser ses pouvoirs !");
+		if (state == 1) {
+			for (i=0; i<PM.length ; i++) {
+				if (name == PM[i].author.username) {
+					PM[i].author.send("Personne n'a été tué. Vous pouvez utilisez votre potion de mort ou ne rien faire");
+				}
+			}
+		}
+		else {
+			for (i=0; i<PM.length ; i++) {
+				if (name == PM[i].author.username) {
+					PM[i].author.send(Players[index].name +" a été tué par les loups, Vous pouvez utilisez votre potion de mort sur quelqu'un ou faire revivre "+Players[index].name);
+				}
+			}
+		}
 		timer.start({countdown: true, startValues: {seconds: 30}});
 		timer.addEventListener('secondsUpdated', function (e) {
-				if (timer.getTimeValues().toString().split("0:00:")[1] % 10 == 0) {
+				if (timer.getTimeValues().toString().split("0:00:")[1] % 10 == 0 && timer.getTimeValues().toString().split("0:00:")[1] != '00') {
 					message.channel.send(timer.getTimeValues().toString().split("0:00:")[1] +" seconds left !");
 				};
 			});
 		timer.addEventListener('targetAchieved', function (e) {
 			message.channel.send("Fin du temps !\n");
-			VoyanteCanReveal = 0
-		});
+			SorcerState = 0
+			if (max != 0)  {
+				if (index == -1) {
+					message.channel.send("Les loups n'ont pas réussi a se départager! *Personne ne meurs*...");
+				}
+				else {
+					if (Players[index].estVivant == false) {
+						message.channel.send("Les loups ont décidé d'éliminer **"+Players[index].nom + "** !\nIl/Elle etait "+Players[index].role + " ...");
+					}
+				}
+			}
+			else {
+				message.channel.send("les *loups n'ont pas voulu tuer de villageois*...");
+			}
+			votes,aVote=tool.resetVotes(votes,aVote);
+			game_start(message);
+	});
 }
-

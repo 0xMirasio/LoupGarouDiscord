@@ -17,6 +17,8 @@ annonceRole : function(tabJoueurs, PM) {
         var playerToContact = tabJoueurs[i].nom
 		for (j=0; j<PM.length; j++) {
 			if (playerToContact == PM[j].author.username) {
+                PM[j].author.send("-------------------DEBUT NOUVELLE PARTIE-------------------------");
+                PM[j].author.send("/list");
 				PM[j].author.send("Ton role est : " + tabJoueurs[i].role);
 			}
 		}
@@ -28,7 +30,7 @@ annonceDesLoups : function(tabJoueurs, PM) {
     for (i=0; i<tabJoueurs.length ; i++) {
 
         var playerToContact = tabJoueurs[i].nom
-        if (playerToContact.role == "Loup") {
+        if (tabJoueurs[i].role == "Loup") {
             fx += playerToContact + ",";
        
         }
@@ -36,7 +38,7 @@ annonceDesLoups : function(tabJoueurs, PM) {
     for (i=0; i<tabJoueurs.length ; i++) {
         var playerToContact = tabJoueurs[i].nom
         for (j=0; j<PM.length; j++) {
-	    	if (playerToContact == PM[j].author.username) {
+	    	if (playerToContact == PM[j].author.username && tabJoueurs[i].role == "Loup") {
 		    	PM[j].author.send("Liste des loups : "+fx);
 	    	}
         }
@@ -78,12 +80,13 @@ resetVotes: function(votes,aVote){
 
 //Fonction pour la voyante
 reveal : function(nomJoueur, tabJoueurs){
+    var role = null;
     for(i = 0; i<tabJoueurs.length;i++){
         if(tabJoueurs[i].nom == nomJoueur){
-           tabJoueurs[i].role;
+          role =  tabJoueurs[i].role;
         }
     }
-    return null;
+    return role;
 },
 
 contains : function(nomJoueur, tabJoueurs){
@@ -111,6 +114,14 @@ checkRole : function(nomJoueur, role, tabJoueurs){
     for(i = 0; i<tabJoueurs.length;i++){
         if(tabJoueurs[i].nom == nomJoueur && tabJoueurs[i].role == role){
            return i;
+        }
+    }
+    return -1;
+},
+checkPlayer : function(name, tabJoueurs) {
+    for(i = 0; i<tabJoueurs.length;i++){
+        if(tabJoueurs[i].nom == name){
+           return 1;
         }
     }
     return -1;
