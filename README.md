@@ -14,7 +14,7 @@ puis invitez votre bot sur le serveur discord en lui donnant des permissions de 
 Le projet est près pour le lancement
 
 => 
-**git clone [REPO]** (ou téléchargmement direct)
+**git clone https://github.com/Garyone/LoupGarouDiscord.git** (ou téléchargmement direct)
 
 NodeJs est requis ! 
 => puis sur un terminal
