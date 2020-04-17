@@ -66,16 +66,17 @@ initVotes :function(n, votes, aVote){
 		votes.push(0);
 		aVote.push(-1);
     }
-    return votes,aVote;
+    return [votes,aVote];
 },
 
 //remise à 0 entre chaque tour
 resetVotes: function(votes,aVote){
 	for(i=0; i<votes.length; i++){
-		votes[i]=0;
-		aVote[i]=-1;
+		votes[i] = 0;
+		aVote[i ]= -1;
     }
-    return votes,aVote;
+    console.log(votes+"  |  "+aVote);
+    return [votes,aVote];
 },
 
 //Fonction pour la voyante
@@ -83,7 +84,7 @@ reveal : function(nomJoueur, tabJoueurs){
     var role = null;
     for(i = 0; i<tabJoueurs.length;i++){
         if(tabJoueurs[i].nom == nomJoueur){
-          role =  tabJoueurs[i].role;
+          role = tabJoueurs[i].role;
         }
     }
     return role;
@@ -110,6 +111,9 @@ loupkill : function(name,message, tabJoueurs) {
     }
 },
 
+//Check si un joueur donné a le role "role"
+//Renvoie l'indice du joueur dans le tableau de joueur si c'est le cas
+//-1 sinon
 checkRole : function(nomJoueur, role, tabJoueurs){
     for(i = 0; i<tabJoueurs.length;i++){
         if(tabJoueurs[i].nom == nomJoueur && tabJoueurs[i].role == role){
@@ -118,6 +122,7 @@ checkRole : function(nomJoueur, role, tabJoueurs){
     }
     return -1;
 },
+
 checkPlayer : function(name, tabJoueurs) {
     for(i = 0; i<tabJoueurs.length;i++){
         if(tabJoueurs[i].nom == name){
@@ -125,6 +130,25 @@ checkPlayer : function(name, tabJoueurs) {
         }
     }
     return -1;
+},
+
+existeRole : function(role,tabJoueurs){
+    for(i=0;i<tabJoueurs.length;i++){
+        if(tabJoueurs[i].role==role){
+            return i;
+        }
+    }
+    return -1;
+},
+
+retirerJoueur : function(nomJoueur, tabJoueurs){
+    for(i = 0; i<tabJoueurs.length; i++){
+        if(tabJoueurs[i].nom == nomJoueur){
+            tabJoueurs.splice(i,1);
+            return tabJoueurs;
+        }
+    }
+    return 0;  
 },
 
 resultatVote : function(votes){
@@ -147,37 +171,9 @@ containsIndice : function(nomJoueur, tabJoueurs){
     return -1;
 },
 
-//fonction pour tuer en général (Loup, village, chasseur..)
-kill : function(nomJoueur, tabJoueurs){
-	index = containsIndice(nomJoueur, tabJoueurs);
-	//Verifier index ?
 
-	if(tabJoueurs[i].estVivant == 1){
-		//On tue le joueur
-		tabJoueurs[i].estVivant = 0;
 
-		//On regarde si le joueur mort est lié à quelqu'un d'autre
-		if(tabJoueurs[i].hasAttribute(linked)){
-			for(joueur in tabJoueurs){
-				if(joueur.hasAttribute(linked) && joueur.nom != nomJoueur){
-					joueur.estVivant = 0;
-				}
-			}
-		}
-	}else{
-		//Message d'erreur : joueur déjà mort
-	}
-},
 
-retirerJoueur : function(nomJoueur, tabJoueurs){
-    for(i = 0; i<tabJoueurs.length; i++){
-        if(tabJoueurs[i].nom == nomJoueur){
-            tabJoueurs.splice(i,1);
-            return tabJoueurs;
-        }
-    }
-    return 0;  
-},
 
 checkEgalite : function(max, votes){
     var index, cpt=0;
@@ -191,6 +187,123 @@ checkEgalite : function(max, votes){
         return index;
     }
     return -1;
+},
+
+
+//Ajoute le role aux roles choisis s'il existe et n'est déjà pas présent dans les roles choisis
+//Renvoie les tableaux de role dispo et choisis modifiés ou non et un message sur le succès ou non de la fonction
+ajouterRole : function(role, tabRolesDispo, tabRolesChoisis, nbSV){
+    switch(role){
+        case "Villageois" : 
+            nbSV++;
+            res = "Rôle correctement ajouté";
+            break;
+        default:
+            var indexDispo = -1, indexChoisi = -1, res="";
+
+            //On regarde si le role choisi existe en tant que role disponible
+            for(i=0; i<tabRolesDispo.length;i++){
+                if(tabRolesDispo[i]==role){
+                    indexDispo = i;
+                }
+            }
+            //On met le role dans roleschoisis et on le retire de roledispo
+            if(indexDispo != -1){
+                tabRolesChoisis.push(role);
+                tabRolesDispo.splice(indexDispo,1);
+                nbSV--;
+
+                res = "Rôle correctement ajouté";
+            }
+            else{
+                //Sinon on regarde si le rôle à déja été choisi et on retourne un message d'erreur
+                for(i=0; i<tabRolesChoisis.length;i++){
+                    if(tabRolesChoisis[i]==role){
+                        indexChoisi = i;
+                    }
+                }
+        
+                if(indexChoisi != -1){
+                    res = "Rôle déjà choisi !";
+                }else{
+                    res = "Rôle inexistant, veuillez réessayer";
+                }
+            }
+    } 
+    return [tabRolesDispo, tabRolesChoisis, res, nbSV];    
+},
+
+
+//Supprime le role des roles choisi s'il existe
+//Renvoie les tableaux de role dispo et choisis modifiés ou non et un message sur le succès ou non de la fonction
+supprimerRole : function(role, tabRolesDispo, tabRolesChoisis, nbSV){
+    switch(role){
+        case "Villageois" : 
+            if(nbSV > 0){
+                nbSV--;
+                res = "Rôle correctement supprimé";
+            }else{
+                res = "Vous ne pouvez pas supprimer plus de villageois";
+            }
+            
+            break;
+        default:
+            var indexChoisi = -1, res="";
+
+            //On regarde si le role choisi existe dans rolechoisi
+            for(i=0; i<tabRolesChoisis.length;i++){
+                if(tabRolesChoisis[i]==role){
+                    indexChoisi = i;
+                }
+            }
+            //On met le role dans rolesdispo et on le retire de rolechoisi
+            if(indexChoisi != -1){
+                tabRolesDispo.push(role);
+                tabRolesChoisis.splice(indexChoisi,1);
+                res = "Rôle correctement supprimé";
+            }
+            else{
+                //Sinon on  retourne un message d'erreur
+                    res = "Rôle non choisi ou inexistant, veuillez réessayer";
+            }
+    }
+    console.log(tabRolesChoisis);
+    return [tabRolesDispo, tabRolesChoisis, res, nbSV];    
+},
+
+//Renvoie un String affichant la liste des roles
+toStringRoles: function(tabRolesChoisis, nbLoup, nbSV){
+    var res ="";
+    if(nbLoup > 0){
+        res+= "Loup : x"+nbLoup;
+    }
+    if(nbSV > 0){
+        res+= "\nVillageois : x"+nbSV;
+    }
+    for(i=0;i<tabRolesChoisis.length;i++){
+        res+="\n"+tabRolesChoisis[i];
+    }
+    return res;
+},
+
+//met à jour le tableau de roles disponibles en fonction du tableau de roles déjà choisi
+majRolesDispo : function(tabRolesDispo, tabRolesChoisis){
+    for(i=0; i<tabRolesChoisis.length;i++){
+       for(j=0;j<tabRolesDispo.length;i++){
+           if(tabRolesChoisis[i] == tabRolesDispo[j]){
+               tabRolesDispo.splice(j,1);
+               break;
+           }
+       }
+    }
+},
+
+toStringRolesDispo : function(tabRolesDispo){
+    res="";
+    for(i=0; i<tabRolesDispo.length;i++){
+        res+=tabRolesDispo[i]+"  ";
+    }
+    return res;
 }
 
 }
