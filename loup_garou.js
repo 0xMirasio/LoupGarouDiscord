@@ -2,13 +2,13 @@ const Discord = require('discord.js')
 const time = require('easytimer.js')
 const tool = require('./tool') 
 const bot = new Discord.Client()
-require('events').EventEmitter.defaultMaxListeners = 15;
+require('events').EventEmitter.defaultMaxListeners = 16;
 
 bot.on('ready', function () {
   console.log("Connected")
 })
 
-bot.login('token here');
+bot.login('Njk5MDE0NDY0Nzc5MDU5MjEx.XpmJVg.3a8_XoKKSH1qM8LNa1LBOrZpPTk');
 
 // VAR GLOBAL SECTION
 var nbPlayer = 0;
@@ -262,12 +262,13 @@ bot.on('message', message => {
 
 
 
-// TODO : Rajoutez toute les commandes (help) quand ca sera fini
+// OK : command help
 bot.on('message', message => {	
  			if (message.content === '/help') {
- 				message.channel.send('Liste des commandes :  \n **/loupStart **(Débute la partie) \n** /loupStop** (Termine la partie) \n **/play** (Vous ajoute à la partie) \n **/leave** (Quitte la partie) \n **/vote** [PLAYER] (votez un joueur que vous pensez être un loup) \n **/kill** [PLAYER] (Envoyez un MP à LoupGarou-Bot pour tuez un joueur pendant la nuit) \n **/curse** [PLAYER] (Envoyez un MP à LoupGarou-Bot pour tuez un joueur en étant la sorcière)  \n **/save** (Envoyez un MP à LoupGarou-Bot pour sauver un joueur) \n **/reveal [PLAYER]** (Affiche le role du joueur (Voyante))') 
-				message.channel.send('**/roleDispo** (Liste des roles disponibles) \n **/roleList** (Liste les roles de la partie) \n **/addRole** (Ajoute un role à la partie) \n **/delRole** (Supprime un role de la partie)')
-})
+ 				message.channel.send('Liste des commandes :  \n **/loupStart **Débute la partie **(ALL)** \n** /loupStop** Termine la partie  **(ALL)** \n **/play** Vous ajoute à la partie **(ALL)** \n **/leave** Quitte la partie **(ALL)** \n **/vote** [PLAYER] votez un joueur que vous pensez être un loup **(ALL)** \n **/kill** [PLAYER] Envoyez un MP à LoupGarou-Bot pour tuez un joueur pendant la nuit **(loup-garou)** \n **/curse** [PLAYER] Envoyez un MP à LoupGarou-Bot pour tuez un joueur  **(sorcière)**  \n **/save** Envoyez un MP à LoupGarou-Bot pour sauver un joueur **(sorcière)** \n **/reveal** [PLAYER] Affiche le role du joueur **(Voyante)**') 
+				message.channel.send('**/roleDispo** Liste des roles disponibles **(ALL)** \n **/roleList** Liste les roles de la partie  **(ALL)**\n **/addRole** Ajoute un role à la partie **(ALL)**\n **/delRole** Supprime un role de la partie **(ALL)** \n **/link** [PLAYER1] [PLAYER2] Lie 2 joueurs **(Cupidon)**\n **/list** Affiche les joueurs vivants **(ALL)**');
+			 }
+		})
 
 // TODO : quand toute sera fini, remettre tout les valeurs a zero
 bot.on('message', message => {	
