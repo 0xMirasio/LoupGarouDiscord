@@ -263,21 +263,17 @@ bot.on('message', message => {
 
 
 // TODO : Rajoutez toute les commandes (help) quand ca sera fini
-// bot.on('message', message => {	
-// 			if (message.content === '/help') {
-// 				message.channel.send('Liste des commandes :  \n **/loupStart **(Débute la partie) \n** /loupStop** (Termine la partie) \n **/play** (Vous ajoute à la partie) \n **/leave** (Quitte la partie) \n **/voteKill** [PLAYER] (votez un joueur que vous pensez être un loup) \n **/elire** [PLAYER] (votez pour un maire)\n **/garouKill** [PLAYER] (Envoyez un MP à LoupGarou-Bot pour tuez un joueur pendant la nuit')
-// 			} 
-// })
+bot.on('message', message => {	
+ 			if (message.content === '/help') {
+ 				message.channel.send('Liste des commandes :  \n **/loupStart **(Débute la partie) \n** /loupStop** (Termine la partie) \n **/play** (Vous ajoute à la partie) \n **/leave** (Quitte la partie) \n **/vote** [PLAYER] (votez un joueur que vous pensez être un loup) \n **/kill** [PLAYER] (Envoyez un MP à LoupGarou-Bot pour tuez un joueur pendant la nuit) \n **/curse** [PLAYER] (Envoyez un MP à LoupGarou-Bot pour tuez un joueur en étant la sorcière)  \n **/save** (Envoyez un MP à LoupGarou-Bot pour sauver un joueur) \n **/reveal [PLAYER]** (Affiche le role du joueur (Voyante))') 
+				message.channel.send('**/roleDispo** (Liste des roles disponibles) \n **/roleList** (Liste les roles de la partie) \n **/addRole** (Ajoute un role à la partie) \n **/delRole** (Supprime un role de la partie)')
+})
 
 // TODO : quand toute sera fini, remettre tout les valeurs a zero
 bot.on('message', message => {	
 	if (message.content === '/loupStop') {
 		message.channel.send("Fin de la partie...");
-		nbPlayer = 0;
-		nbLoup = 0;
-		Players = [];
-		Loup = [];
-
+		process.exit()
 	} 
 });
 
