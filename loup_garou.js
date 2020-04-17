@@ -8,7 +8,7 @@ bot.on('ready', function () {
   console.log("Connected")
 })
 
-bot.login('Njk5MDE0NDY0Nzc5MDU5MjEx.XpmJVg.3a8_XoKKSH1qM8LNa1LBOrZpPTk');
+bot.login('token here');
 
 // VAR GLOBAL SECTION
 var nbPlayer = 0;
@@ -80,7 +80,7 @@ bot.on('message', async message => {
 
 				cupidon = getJoueurRole("Cupidon", Players);
 				if(cupidon!=-1){
-					cupidon.peuxLier = true;
+					cupidon.peuxLier = true; //attribut pour savoir si cupidon peut lier deux joueurs
 				}
 
 				chasseur = getJoueurRole("Chasseur", Players);
@@ -114,7 +114,7 @@ bot.on('message', message => {
 					message.channel.send("Nombre de joueurs actuels : " + nbPlayer);
 
 					//maj 
-					nbLoup = Math.floor(nbPlayer/4) +1;
+					nbLoup = Math.floor(nbPlayer/5) +1;
 					nbSV= nbPlayer-nbLoup-rolesChoisis.length;
 				//}
 				//else{
@@ -127,6 +127,26 @@ bot.on('message', message => {
 	}
 		
 });
+
+
+// OK (leave)
+bot.on('message', message => {    
+    if (message.content === '/leave') {
+        var joueur = message.author.username;
+		var retour = tool.retirerJoueur(joueur,Players);
+		console.log(retour);
+        if(retour){
+			nbPlayer--;
+			nbLoup = Math.floor(nbPlayer/5) +1;
+			nbSV= nbPlayer-nbLoup-rolesChoisis.length;
+
+			message.channel.send("**"+joueur + "** à quitté la partie !");
+        }else{
+			message.channel.send("Ce joueur n'est pas présent dans la partie"); 
+        }
+        
+    }
+})
 
 
 //Commande pour ajouter un rôle
@@ -179,6 +199,39 @@ bot.on('message', message => {
 });
 
 
+// OK (list)
+bot.on('message', message => {	
+	if (message.content === '/list') {
+		var fx= '';
+		for (i=0 ; i<Players.length ; i++) {
+			if (Players[i].estVivant) {
+				fx = Players[i].nom + "  " +  fx;
+			}
+		}
+		message.channel.send("Les joueurs vivants sont : **"+ fx+"**");
+	} 
+})
+
+
+// OK : command help
+bot.on('message', message => {	
+	if (message.content === '/help') {
+		message.channel.send('Liste des commandes :  \n **/loupStart **Débute la partie **(ALL)** \n** /loupStop** Termine la partie  **(ALL)** \n **/play** Vous ajoute à la partie **(ALL)** \n **/leave** Quitte la partie **(ALL)** \n **/vote** [PLAYER] votez un joueur que vous pensez être un loup **(ALL)** \n **/kill** [PLAYER] Envoyez un MP à LoupGarou-Bot pour tuez un joueur pendant la nuit **(loup-garou)** \n **/curse** [PLAYER] Envoyez un MP à LoupGarou-Bot pour tuez un joueur  **(sorcière)**  \n **/save** Envoyez un MP à LoupGarou-Bot pour sauver un joueur **(sorcière)** \n **/reveal** [PLAYER] Affiche le role du joueur **(Voyante)**') 
+	   message.channel.send('**/roleDispo** Liste des roles disponibles **(ALL)** \n **/roleList** Liste les roles de la partie  **(ALL)**\n **/addRole** Ajoute un role à la partie **(ALL)**\n **/delRole** Supprime un role de la partie **(ALL)** \n **/link** [PLAYER1] [PLAYER2] Lie 2 joueurs **(Cupidon)**\n **/list** Affiche les joueurs vivants **(ALL)**');
+	}
+})
+
+
+// TODO : quand toute sera fini, remettre tout les valeurs a zero
+bot.on('message', message => {	
+if (message.content === '/loupStop') {
+message.channel.send("Fin de la partie...");
+process.exit()
+} 
+});
+
+
+
 
 // OK (/kill)
 //Commande pour que les loups puissent voter l'élimination de quelqu'un
@@ -186,7 +239,6 @@ bot.on('message', message => {
 	if (message.content.startsWith('/kill')) {
 
 		var indexLoup = tool.checkRole(message.author.username, "Loup", Players);
-		var indexChasseur = tool.checkRole(message.author.username, "Chasseur", Players);
 		
 		//Si le joueur est un loup, en vie, et que les loups peuvent voter
 		if(indexLoup != -1 && Players[indexLoup].estVivant == 1 && loupCanKill == 1){
@@ -216,9 +268,19 @@ bot.on('message', message => {
 					}
 				}
 			}
+		}else{
+			message.reply("Vous n'avez pas le droit d'utilser cette commande !");
+		}
+	}
 
-		//Cas du chasseur
-		}else if(indexChasseur != -1 && phaseChasseur && chasseur.peuxTuer && !chasseur.estVivant) {
+});
+
+bot.on('message', message => {
+	if (message.content.startsWith('/hunt')) {
+		
+		var indexChasseur = tool.checkRole(message.author.username, "Chasseur", Players);
+
+		if(indexChasseur != -1 && phaseChasseur && chasseur.peuxTuer && !chasseur.estVivant) {
 			var joueurDesigne = message.content.split(" ")[1];
 			var indexJoueurDesigne = tool.containsIndice(joueurDesigne, Players);
 			if (indexJoueurDesigne == -1) {
@@ -226,6 +288,8 @@ bot.on('message', message => {
 			//Check que le joueur désigné est en vie
 			}else if(!Players[indexJoueurDesigne].estVivant){
 				message.reply("Ce joueur est déjà mort !");
+
+			//Check que le joueur désigné n'est pas le chasseur
 			}else if(joueurDesigne == Players[indexChasseur].nom){
 				message.reply("Vous n'avez pas le droit de vous designer");
 			}else{
@@ -233,11 +297,8 @@ bot.on('message', message => {
 				chasseur.aTue = Players[indexJoueurDesigne];
 				chasseur.peuxTuer = false;
 			}
-		}else{
-			message.reply("Vous n'avez pas le droit d'utilser cette commande !");
 		}
 	}
-
 });
 
 
@@ -251,6 +312,10 @@ bot.on('message', message => {
 			var indexJoueurDesigne = tool.containsIndice(joueurDesigne, Players);
 			if (indexJoueurDesigne == -1) {
 				message.reply("Ce joueur n'existe pas !");
+
+			//Check que le joueur désigné est en vie
+			}else if(!Players[indexJoueurDesigne].estVivant){
+				message.reply("Ce joueur est mort !");
 			}else{
 				voter(message.author.username, joueurDesigne);
 				message.reply("Vous souhaitez eliminer **"+joueurDesigne+"**.");
@@ -260,23 +325,6 @@ bot.on('message', message => {
     }
 });
 
-
-
-// OK : command help
-bot.on('message', message => {	
- 			if (message.content === '/help') {
- 				message.channel.send('Liste des commandes :  \n **/loupStart **Débute la partie **(ALL)** \n** /loupStop** Termine la partie  **(ALL)** \n **/play** Vous ajoute à la partie **(ALL)** \n **/leave** Quitte la partie **(ALL)** \n **/vote** [PLAYER] votez un joueur que vous pensez être un loup **(ALL)** \n **/kill** [PLAYER] Envoyez un MP à LoupGarou-Bot pour tuez un joueur pendant la nuit **(loup-garou)** \n **/curse** [PLAYER] Envoyez un MP à LoupGarou-Bot pour tuez un joueur  **(sorcière)**  \n **/save** Envoyez un MP à LoupGarou-Bot pour sauver un joueur **(sorcière)** \n **/reveal** [PLAYER] Affiche le role du joueur **(Voyante)**') 
-				message.channel.send('**/roleDispo** Liste des roles disponibles **(ALL)** \n **/roleList** Liste les roles de la partie  **(ALL)**\n **/addRole** Ajoute un role à la partie **(ALL)**\n **/delRole** Supprime un role de la partie **(ALL)** \n **/link** [PLAYER1] [PLAYER2] Lie 2 joueurs **(Cupidon)**\n **/list** Affiche les joueurs vivants **(ALL)**');
-			 }
-		})
-
-// TODO : quand toute sera fini, remettre tout les valeurs a zero
-bot.on('message', message => {	
-	if (message.content === '/loupStop') {
-		message.channel.send("Fin de la partie...");
-		process.exit()
-	} 
-});
 
 // OK : reveal the role of a player (voyante)
 bot.on('message', message => {	
@@ -292,6 +340,10 @@ bot.on('message', message => {
 				
 				if (voyante.dejaVu.includes(joueurAReveler)) {
 					message.reply("Vous connaissez déjà le rôle de ce joueur");
+					
+				//Check que le joueur désigné est en vie
+				}else if(!Players[index].estVivant){
+					message.reply("Ce joueur est mort !");
 				}else{
 					var role = tool.reveal(joueurAReveler, Players);
 					message.reply("**"+joueurAReveler + '** est : **'+role+"**");
@@ -322,6 +374,9 @@ bot.on('message', message => {
 				message.reply("Ce joueur n'existe pas !");
 			}else if(sorciere.nom == joueurMaudit){
 				message.reply("Vous ne pouvez pas vous tuer !");
+			//Check que le joueur désigné est en vie
+			}else if(!Players[index].estVivant){
+				message.reply("Ce joueur est mort !");
 			}else{
 				sorciere.aTue = Players[index];
 				sorciere.peuxTuer = false;
@@ -375,38 +430,6 @@ bot.on('message', message => {
 
 	}
 });
-
-// OK (list)
-bot.on('message', message => {	
-	if (message.content === '/list') {
-		var fx= '';
-		for (i=0 ; i<Players.length ; i++) {
-			if (Players[i].estVivant) {
-				fx = Players[i].nom + "  " +  fx;
-			}
-		}
-		message.channel.send("Les joueurs vivants sont : **"+ fx+"**");
-	} 
-})
-
-// OK (leave)
-bot.on('message', message => {    
-    if (message.content === '/leave') {
-        var joueur = message.author.username;
-		var retour = tool.retirerJoueur(joueur,Players);
-		console.log(retour);
-        if(retour){
-			nbPlayer--;
-			nbLoup = Math.floor(nbPlayer/4) +1;
-			nbSV= nbPlayer-nbLoup-rolesChoisis.length;
-
-			message.channel.send("**"+joueur + "** à quitté la partie !");
-        }else{
-			message.channel.send("Ce joueur n'est pas présent dans la partie"); 
-        }
-        
-    }
-})
 
 //----------------------CLASSE ET FONCTIONS--------------------//
 
