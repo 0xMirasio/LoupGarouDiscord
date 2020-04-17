@@ -8,7 +8,7 @@ bot.on('ready', function () {
   console.log("Connected")
 })
 
-bot.login('Njk5MDE0NDY0Nzc5MDU5MjEx.XpXWwg.BsTgUtuOz8umJfLDmnUB2_3D-WU')
+bot.login('token here');
 
 // VAR GLOBAL SECTION
 var nbPlayer = 0;
@@ -17,7 +17,7 @@ var Players = [];
 var nbLoup = 0;
 var nbSV = 0; //Nombre de simples villageois
 // var Role = ["Loup","Sorcière","Voyante","Cupidon","Chasseur","LoupBlanc","Voleur","Villageois"];
-var rolesDispo = ["Sorcière","Voyante","Cupidon","Chasseur","Voleur"];
+var rolesDispo = ["Sorcière","Voyante","Cupidon","Chasseur"];
 var rolesChoisis = [];
 var votes = []  //tableau pour le nombre de vote sur chaque joueur
 var aVote = []  //tableau pour savoir qui a voté pour qui pour le tour actuel
@@ -39,7 +39,8 @@ var sorciere, voyante, cupidon, chasseur; //Variable pour stocker les rôles sp�
 
 // OK (/loupStart)
 //Ajout d'un cas else if qui vérifie qu'il y a autant de joueurs que de rôles
-bot.on('message', message => {
+bot.on('message', async message => {
+
     if (message.content === '/loupStart') {
         if (nbPlayer < 1) {
             message.channel.send('Pas assez de joueur pour lancez ! (Min : 5)')
@@ -54,8 +55,8 @@ bot.on('message', message => {
                 message.channel.send("Nombre de Loup : " + nbLoup);
                 Players = generateIDs(nbPlayer,nbLoup, Players, rolesChoisis);
                 console.log("Début de partie");
-                tool.annonceRole(Players, PM);
-				tool.annonceDesLoups(Players,PM);
+                await tool.annonceRole(Players, PM);
+				await tool.annonceDesLoups(Players,PM);
 
 				//initialisation des votes
 				var dataVotes = tool.initVotes(nbPlayer,votes,aVote);
@@ -78,6 +79,9 @@ bot.on('message', message => {
 				
 
 				cupidon = getJoueurRole("Cupidon", Players);
+				if(cupidon!=-1){
+					cupidon.peuxLier = true;
+				}
 
 				chasseur = getJoueurRole("Chasseur", Players);
 				if(chasseur !=-1){
@@ -105,7 +109,7 @@ bot.on('message', message => {
 				//if(!tool.contains(nomJoueur, Players)){
 					Players.push(new Player(nomJoueur,idJoueur))
 					PM.push(message);
-					nbPlayer++
+					nbPlayer++;
 					message.channel.send("Ajout de **" + nomJoueur + "** à la partie");
 					message.channel.send("Nombre de joueurs actuels : " + nbPlayer);
 
@@ -140,7 +144,7 @@ bot.on('message', message => {
         //     message.channel.send('Vous ne pouvez pas ajouter de rôle supplémentaire');
         // }
     }
-})
+});
 
 
 //Commande pour supprimer un rôle
@@ -158,7 +162,7 @@ bot.on('message', message => {
             message.channel.send('Vous ne pouvez pas supprimer plus de rôles');
         }
     }
-})
+});
 
 
 //Commande pour afficher la liste des roles 
@@ -166,13 +170,13 @@ bot.on('message', message => {
     if (message.content === '/roleList') {
        message.channel.send(tool.toStringRoles(rolesChoisis,nbLoup,nbSV));
     }
-})
+});
 
 bot.on('message', message => {
     if (message.content === '/roleDispo') {
        message.channel.send(tool.toStringRolesDispo(rolesDispo));
     }
-})
+});
 
 
 
@@ -225,14 +229,15 @@ bot.on('message', message => {
 			}else if(joueurDesigne == Players[indexChasseur].nom){
 				message.reply("Vous n'avez pas le droit de vous designer");
 			}else{
+				message.reply("Vous souhaitez tuer **"+joueurDesigne+"**");
 				chasseur.aTue = Players[indexJoueurDesigne];
 				chasseur.peuxTuer = false;
 			}
-		}else
+		}else{
 			message.reply("Vous n'avez pas le droit d'utilser cette commande !");
 		}
+	}
 
-	} 
 });
 
 
@@ -253,7 +258,7 @@ bot.on('message', message => {
 			}
 	   }
     }
-})
+});
 
 
 
@@ -274,7 +279,7 @@ bot.on('message', message => {
 		Loup = [];
 
 	} 
-})
+});
 
 // OK : reveal the role of a player (voyante)
 bot.on('message', message => {	
@@ -303,7 +308,7 @@ bot.on('message', message => {
 		}
 
 	} 
-})
+});
 
 
 //OK (Sorciere curse)
@@ -329,31 +334,50 @@ bot.on('message', message => {
 			message.reply("Vous n'avez pas le droit d'utilser cette commande !");
 		}		
 	} 
-})
+});
 
 // OK (Sorcière save)
 bot.on('message', message => {	
-	if (message.content.startsWith('/save')) {
+	if (message.content === '/save') {
 
 		if(tool.checkRole(message.author.username, sorciere.role, Players) != -1 && sorciere.estVivant && sorciere.peuxAgir && sorciere.peuxSauver){
+			
+			joueurATuer.estSauve = true;
+			sorciere.peuxSauver = false;	
+			message.reply("Vous venez de sauver **"+ joueurATuer.nom+"**");
+			
+		}else{
+			message.reply("Vous n'avez pas le droit d'utilser cette commande !");
+		}
 
-			var joueurSauve = message.content.split(" ")[1];
-			var index = tool.containsIndice(joueurSauve, Players);
+	}
+});
 
-			if (index == -1) {
-				message.reply("Ce joueur n'existe pas !");
+bot.on('message', message => {	
+	if (message.content.startsWith('/link')) {
+
+		if(tool.checkRole(message.author.username, cupidon.role, Players) != -1 && cupidon.estVivant && cupidon.peuxLier){
+
+			var joueur1 = message.content.split(" ")[1];
+			var joueur2 = message.content.split(" ")[2];
+			var index1 = tool.containsIndice(joueur1, Players);
+			var index2 = tool.containsIndice(joueur2, Players);
+
+			if (index1 == -1 || index2 == -1) {
+				message.reply("Un des joueurs n'existe pas !");
 			}
 			else {
-				joueurATuer.estSauve = true;
-				sorciere.peuxSauver = false;	
-				message.reply("Vous venez de sauver **"+ joueurSauve+"**");
+				Players[index1].linked = true;
+				Players[index2].linked = true;
+				cupidon.peuxLier = false;	
+				message.reply("Vous venez de lier **"+joueur1+"** et **"+joueur2+"**.");
 			}
 		}else{
 			message.reply("Vous n'avez pas le droit d'utilser cette commande !");
 		}
 
 	}
-})
+});
 
 // OK (list)
 bot.on('message', message => {	
@@ -361,7 +385,7 @@ bot.on('message', message => {
 		var fx= '';
 		for (i=0 ; i<Players.length ; i++) {
 			if (Players[i].estVivant) {
-				fx = Players[i].nom + "," +  fx;
+				fx = Players[i].nom + "  " +  fx;
 			}
 		}
 		message.channel.send("Les joueurs vivants sont : **"+ fx+"**");
@@ -478,19 +502,20 @@ function kill(joueur, tabJoueurs){
 	}
 
 	if(joueur.hasOwnProperty('linked')){
-		for(joueur in tabJoueurs){
-			if(joueur.hasOwnProperty('linked') && joueur.nom != nomJoueur){
-				joueur.estVivant = false;
-				return joueur;
+		for(i=0; i<tabJoueurs.length; i++){
+			if(tabJoueurs[i].hasOwnProperty('linked') && joueur.nom != tabJoueurs[i].nom){
+				tabJoueurs[i].estVivant = false;
+				return tabJoueurs[i];
 			}
 		}
 	}
 	return -1;
 }
 
+//Check si un amoureux a été tué
 function checkAmoureux(message, joueur){
 	if(joueur != -1){
-		message.channel.send(joueurATuer.nom+" était, de plus, follement amoureux de **"+joueur.nom + "** !\nCe dernier meurt malheureusement avec lui/elle, il/elle était **"+joueur.role+"**");
+		message.channel.send("**"+joueurATuer.nom+"** était, de plus, follement amoureux de **"+joueur.nom + "** !\nCe dernier meurt malheureusement avec lui/elle, il/elle était **"+joueur.role+"**");
 		return 1;
 	}
 	return 0;
@@ -504,35 +529,31 @@ function getJoueurRole(role, tabJoueurs){
 	return index;
 }
 
-function deliberationNuit(message, joueurATuer){
+async function deliberationNuit(message, joueurATuer){
 	var cptMort = 0;
-	console.log(joueurATuer);
 	//Si les loups ont voté
 	if (max != 0) {
 		//Qu'il n'y a pas d'égalité
 		if (joueurATuer != 0) {
 			var retourKill = -1;
-
 			if(joueurATuer.hasOwnProperty('estSauve') && joueurATuer.estSauve){
 				joueurATuer.estSauve = false;
-			
 			}else{
 				retourKill = kill(joueurATuer,Players);
 				message.channel.send("**"+joueurATuer.nom+"** a été éliminé.e!\nIl/Elle etait **"+joueurATuer.role+"**");
 				cptMort++
-
 				//Cas Amoureux
-				checkAmoureux(message,retourKill);
-				
+				await checkAmoureux(message,retourKill);
 			}
 
 		}
 			
 	}
+
 	//Check si la sorcière a tué quelqu'un
 	if(sorciere !=-1 && sorciere.hasOwnProperty('aTue') && sorciere.aTue != null && sorciere.aTue != joueurATuer){
 		
-		if(cptMort != 2 || !joueurATuer.hasOwnProperty('linked')){
+		if(cptMort != 2 || !sorciere.aTue.hasOwnProperty('linked')){
 			
 			joueurATuer = sorciere.aTue;
 			var retourKill = kill(sorciere.aTue, Players);
@@ -540,7 +561,7 @@ function deliberationNuit(message, joueurATuer){
 			cptMort++;
 
 			//Cas Amoureux
-			checkAmoureux(message,retourKill);
+			await checkAmoureux(message,retourKill);
 
 		}
 		
@@ -549,27 +570,24 @@ function deliberationNuit(message, joueurATuer){
 
 	//Check le compteur de mort et les votes pour afficher la phrase correspondante
 	if(cptMort == 0 && max == 0){
-		message.channel.send("les *loups n'ont pas voulu tuer de villageois*...");
+		message.channel.send("Personne n'est mort cette nuit..");
 	}else if(cptMort == 0 && joueurATuer == 0){
 		message.channel.send("Les loups n'ont pas réussi a se départager! *Personne ne meurs*...");
 	}
 	else if(cptMort == 0){
 		message.channel.send("Personne n'est mort cette nuit..");
-	}else{
-		//Cas du chasseur
-		if(!chasseur.estVivant && chasseur.peuxTuer){
-			chasseur_time(message, "nuit");
-		}
 	}
 
 	var datasVotes = tool.resetVotes(votes,aVote);
 	votes = datasVotes[0];
 	aVote = datasVotes[1];
-	game_start(message);
+		
+	chasseur_time(message, "nuit");
+	
 }
 
 
-function deliberationJour(message){
+async function deliberationJour(message){
 	
 	max = tool.resultatVote(votes);
 
@@ -579,15 +597,10 @@ function deliberationJour(message){
 			joueurATuer = Players[index];
 			
 			var retourKill = kill(joueurATuer,Players);
-			message.channel.send(joueurATuer.nom+" a été éliminé.e!\nIl/Elle etait "+joueurATuer.role);
+			message.channel.send("**"+joueurATuer.nom+"** a été éliminé.e!\nIl/Elle etait **"+joueurATuer.role+"**");
 			
 			//Cas Amoureux
-			checkAmoureux(message,retourKill);
-
-			//Cas du chasseur
-			if(!chasseur.estVivant && chasseur.peuxTuer){
-				chasseur_time(message, "jour");
-			}
+			await checkAmoureux(message,retourKill);
 
 		}else{
 			message.channel.send("Les habitants n'ont pas réussi à se décider");
@@ -596,8 +609,12 @@ function deliberationJour(message){
 		message.channel.send("Les habitants n'ont voté pour personne");
 	}
 	
+	var datasVotes = tool.resetVotes(votes,aVote);
+	votes = datasVotes[0];
+	aVote = datasVotes[1];
 
-	game_start(message);
+	chasseur_time(message, "jour");
+	
 }
 
 
@@ -607,21 +624,69 @@ function game_start(message) {
 	cpt++;
 	message.channel.send('DEBUT NUIT : '+ cpt);
 	message.channel.send('-------------------------------------------------------------------\n\n');
-	loupandvoyante_time(message);
+	cupidon_time(message);
+}
+
+async function terminerJeu(message){
+	var dataCheckFin = tool.checkFinJeu(Players);
+	var jeuEstFini = dataCheckFin[0];
+	var retourCheckFin = dataCheckFin[1];
+
+	if(jeuEstFini){
+		switch(retourCheckFin){
+			case 0 : 
+				await message.channel.send("La partie est terminée ! Les villageois ont gagnés !");
+				break;
+			case 1 :
+				await message.channel.send("La partie est terminée ! Les loups ont gagné !");
+				break;
+			case 2 :
+				await message.channel.send("La partie est terminée ! Personne n'a gagné !");
+		}
+		process.exit();
+	}
 }
 
 
 //----------------------JEU PRINCIPAL--------------------//
 
+function cupidon_time(message){
+	if(cupidon != -1 && cupidon.estVivant && cupidon.peuxLier){
+		
+		var timer = new time.Timer();
+
+		message.channel.send("\nCupidon à **30** secondes pour sélectionner 2 joueurs dont le destin sera lié pour le reste de la partie !");
+		cupidon.idJoueur.send("Vous avez **30** secondes pour désigner 2 joueurs à lier (/link [nom1] [nom2]) !");
+
+		timer.start({countdown: true, startValues: {seconds: 30}});
+		timer.addEventListener('secondsUpdated', function (e) {
+				if (timer.getTimeValues().toString().split("0:00:")[1] % 10 == 0 && timer.getTimeValues().toString().split("0:00:")[1] != '00') {
+					message.channel.send(timer.getTimeValues().toString().split("0:00:")[1] +" seconds left !");
+				};
+		});
+
+		timer.addEventListener('targetAchieved', function (e) {
+			cupidon.peuxLier = false;
+			loupandvoyante_time(message);
+		});
+
+	}else{
+		loupandvoyante_time(message);
+	}
+}
+
+
 function loupandvoyante_time(message) {
 	joueurATuer = 0;
 
-	message.channel.send('\nLes loups ont **45s** pour choisir leur victime...');
+	message.channel.send('\nLes loups ont **20s** pour choisir leur victime...');
+	message.channel.send("/list");
 	loupCanKill = 1;
 
 	//Check si la voyante existe et si elle est en vie
 	if(voyante != -1 && voyante.estVivant){
-		message.channel.send('\nLa voyante a **45s** pour reveler une personne...');
+		message.channel.send('\nLa voyante a **20s** pour reveler une personne...');
+		voyante.idJoueur.send("/list");
 		voyante.peuxVoir = true;
 	}
 	
@@ -631,7 +696,7 @@ function loupandvoyante_time(message) {
 	votes = datasVotes[0];
 	aVote = datasVotes[1];
 	
-	timer.start({countdown: true, startValues: {seconds: 40}});
+	timer.start({countdown: true, startValues: {seconds: 20}});
 	timer.addEventListener('secondsUpdated', function (e) {
 		if (timer.getTimeValues().toString().split("0:00:")[1] % 10 == 0 && timer.getTimeValues().toString().split("0:00:")[1] != '00') {
 			message.channel.send(timer.getTimeValues().toString().split("0:00:")[1] +" seconds left !");
@@ -678,7 +743,10 @@ function sorciere_time(message, joueurATuer) {
 			sorciere.idJoueur.send("Personne n'a été tué. Vous pouvez utilisez votre potion de mort (/curse [nom]) ou ne rien faire");
 		}
 		else if(max !=0 && joueurATuer != 0 && sorciere.peuxSauver) {	
-			sorciere.idJoueur.send(joueurATuer.nom +" a été tué par les loups, Vous pouvez utilisez votre potion de mort (/curse [nom]) sur quelqu'un ou sauver "+joueurATuer.nom + " (/save [nom])");
+			sorciere.idJoueur.send("**"+joueurATuer.nom +"** a été tué par les loups, Vous pouvez utilisez votre potion de mort (/curse [nom]) sur quelqu'un ou sauver **"+joueurATuer.nom + "** (/save)");
+		
+		}else if(sorciere.peuxTuer){
+			sorciere.idJoueur.send("Vous pouvez utilisez votre potion de mort (/curse [nom]) ou ne rien faire");
 		}
 
 		message.channel.send("\nLa Sorcière à **30** secondes pour utiliser ses pouvoirs !");
@@ -712,9 +780,13 @@ function sorciere_time(message, joueurATuer) {
 //fonction village
 function village_time(message){
 	phaseVillage = true;
+	
 	var timer = new time.Timer();
 
-	timer.start({countdown: true, startValues: {seconds: 120}});
+	message.channel.send("\nLe village à **30** secondes pour décider de la personne à éliminer !");
+	message.channel.send("/list");
+
+	timer.start({countdown: true, startValues: {seconds: 30}});
 		timer.addEventListener('secondsUpdated', function (e) {
 				if (timer.getTimeValues().toString().split("0:00:")[1] % 10 == 0 && timer.getTimeValues().toString().split("0:00:")[1] != '00') {
 					message.channel.send(timer.getTimeValues().toString().split("0:00:")[1] +" seconds left !");
@@ -727,36 +799,60 @@ function village_time(message){
 		});
 }
 
-//fonction chasseur
-function chasseur_time(message, temps){
-	phaseChasseur = true;
-	message.channel.send("\nLe Chasseur à **30** secondes pour se venger !");
-	chasseur.idJoueur.send("Vous avez **30** secondes pour désigner quelqu'un à tuer (/kill [nom]) !");
 
-	timer.start({countdown: true, startValues: {seconds: 30}});
+
+//fonction chasseur
+async function chasseur_time(message, temps){
+	
+	if(!chasseur.estVivant && chasseur.peuxTuer){
+		phaseChasseur = true;
+		var timer = new time.Timer();
+
+		message.channel.send("\nLe Chasseur à **30** secondes pour se venger !");
+		chasseur.idJoueur.send("Vous avez **30** secondes pour désigner quelqu'un à tuer (/kill [nom]) !");
+		chasseur.idJoueur.send("/list");
+
+		timer.start({countdown: true, startValues: {seconds: 30}});
 		timer.addEventListener('secondsUpdated', function (e) {
 				if (timer.getTimeValues().toString().split("0:00:")[1] % 10 == 0 && timer.getTimeValues().toString().split("0:00:")[1] != '00') {
 					message.channel.send(timer.getTimeValues().toString().split("0:00:")[1] +" seconds left !");
 				};
 		});
 
-		timer.addEventListener('targetAchieved', function (e) {
-			chasseur.peuxTuer = false;
-			
-			if(chasseur.hasOwnProperty('aTue')){
-				joueurATuer = chasseur.aTue;
-
-				var retourKill = kill(chasseur.aTue, Players);
-				message.channel.send(joueurATuer.nom+" a été éliminé.e!\nIl/Elle etait "+joueurATuer.role);
+			timer.addEventListener('targetAchieved', async function (e) {
+				chasseur.peuxTuer = false;
 				
-				//Cas Amoureux
-				checkAmoureux(message,retourKill);
-			}
+				if(chasseur.hasOwnProperty('aTue')){
+					joueurATuer = chasseur.aTue;
 
-			if(temps == "jour"){
-				game_start(message);
-			}else{
-				village_time(message);
-			}
-		});
+					var retourKill = kill(chasseur.aTue, Players);
+					message.channel.send("**"+joueurATuer.nom+"** a été éliminé.e!\nIl/Elle etait **"+joueurATuer.role+"**");
+					
+					//Cas Amoureux
+					await CheckAmoureux(message,retourKill);
+				}
+
+				await terminerJeu(message);
+
+				if(temps == "jour"){
+					game_start(message);
+				}else{
+					village_time(message);
+				}
+
+			});
+	}else{
+
+		await terminerJeu(message);
+		
+		if(temps == "jour"){
+			game_start(message);
+		}else{
+			village_time(message);
+		}
+
+	}
+
 }
+
+

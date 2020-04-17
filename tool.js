@@ -12,14 +12,14 @@ module.exports = {
 },
 
 
+//-------------------ANNONCES --------------------//
 annonceRole : function(tabJoueurs, PM) {
 	for (i=0; i<tabJoueurs.length ; i++) {
         var playerToContact = tabJoueurs[i].nom
 		for (j=0; j<PM.length; j++) {
 			if (playerToContact == PM[j].author.username) {
                 PM[j].author.send("-------------------DEBUT NOUVELLE PARTIE-------------------------");
-                PM[j].author.send("/list");
-				PM[j].author.send("Ton role est : " + tabJoueurs[i].role);
+                PM[j].author.send("Ton role est : " + tabJoueurs[i].role); 
 			}
 		}
 	}
@@ -31,7 +31,7 @@ annonceDesLoups : function(tabJoueurs, PM) {
 
         var playerToContact = tabJoueurs[i].nom
         if (tabJoueurs[i].role == "Loup") {
-            fx += playerToContact + ",";
+            fx += "**"+playerToContact + "**   ";
        
         }
     }
@@ -45,20 +45,8 @@ annonceDesLoups : function(tabJoueurs, PM) {
     }
 },
 
-//fonction pour cupidon
-link : function(nomJoueur1, nomJoueur2, tabJoueurs){
-	var cpt = 0;
-	//On utilise le fait de pouvoir rajouter des attributs à la volée
-	for(joueur in tabJoueur){
-		if(joueur.nom == nomJoueur1 || joueur.nom == nomJoueur2){
-			jouer.linked = 1;
-			cpt++;
-		}
-	}
-	if(cpt != 2){
-		//Message d'erreur : 1 ou 2 joueur non existant(s)
-	}
-},
+
+//-------------------VOTES--------------------//
 
 //initialise le tableau de vote et de aVoté pour n joueur
 initVotes :function(n, votes, aVote){
@@ -79,6 +67,47 @@ resetVotes: function(votes,aVote){
     return [votes,aVote];
 },
 
+checkEgalite : function(max, votes){
+    var index, cpt=0;
+    for(i=0; i<votes.length; i++){
+        if(votes[i] == max){
+            index = i;
+            cpt++;
+        }
+    }
+    if(cpt == 1){
+        return index;
+    }
+    return -1;
+},
+
+resultatVote : function(votes){
+	max = 0;
+	for(i=0; i<votes.length; i++){
+		if(votes[i] > max){
+			max = votes[i];
+		}
+	}
+	return max;
+},
+
+
+
+//-------------------FONCTION DIVERSES--------------------//
+
+// //fonction pour cupidon
+// link : function(nomJoueur1, nomJoueur2, tabJoueurs){
+// 	var cpt = 0;
+// 	//On utilise le fait de pouvoir rajouter des attributs à la volée
+// 	for(joueur in tabJoueur){
+// 		if(joueur.nom == nomJoueur1 || joueur.nom == nomJoueur2){
+// 			jouer.linked = true;
+// 			cpt++;
+// 		}
+// 	}
+// },
+
+
 //Fonction pour la voyante
 reveal : function(nomJoueur, tabJoueurs){
     var role = null;
@@ -89,6 +118,7 @@ reveal : function(nomJoueur, tabJoueurs){
     }
     return role;
 },
+
 
 contains : function(nomJoueur, tabJoueurs){
     for(i = 0; i<tabJoueurs.length; i++){
@@ -105,9 +135,7 @@ loupkill : function(name,message, tabJoueurs) {
 		   message.author = tabJoueurs[i].idJoueur;
 		   message.author.send("bite");
 	   }
-	   console.log(message.author.id)
 	   message.author.id = tabJoueurs[0].idJoueur;
-	   console.log(message.author.id)
     }
 },
 
@@ -151,16 +179,6 @@ retirerJoueur : function(nomJoueur, tabJoueurs){
     return 0;  
 },
 
-resultatVote : function(votes){
-	max = 0;
-	for(i=0; i<votes.length; i++){
-		if(votes[i] > max){
-			max = votes[i];
-		}
-	}
-	return max;
-},
-
 
 containsIndice : function(nomJoueur, tabJoueurs){
 	for(i = 0; i<tabJoueurs.length; i++){
@@ -171,24 +189,29 @@ containsIndice : function(nomJoueur, tabJoueurs){
     return -1;
 },
 
-
-
-
-
-checkEgalite : function(max, votes){
-    var index, cpt=0;
-    for(i=0; i<votes.length; i++){
-        if(votes[i] == max){
-            index = i;
-            cpt++;
+checkFinJeu : function(tabJoueurs){
+    var nbLoup = 0, 
+    nbVillageois = 0;
+    for(i=0; i<tabJoueurs.length; i++){
+        if(tabJoueurs[i].estVivant && tabJoueurs[i].role == "Loup"){
+            nbLoup++;
+        }else if(tabJoueurs[i].estVivant){
+            nbVillageois++;
         }
     }
-    if(cpt == 1){
-        return index;
+
+    if(nbLoup+nbVillageois == 0){
+        return [true,2];
+    }else if(nbLoup == 0){
+        return [true,0];
+    }else if(nbVillageois <= 1) {
+        return [true,1];
     }
-    return -1;
+
+    return [false,0];
 },
 
+//-------------------GESTION ROLES--------------------//
 
 //Ajoute le role aux roles choisis s'il existe et n'est déjà pas présent dans les roles choisis
 //Renvoie les tableaux de role dispo et choisis modifiés ou non et un message sur le succès ou non de la fonction
@@ -211,8 +234,10 @@ ajouterRole : function(role, tabRolesDispo, tabRolesChoisis, nbSV){
             if(indexDispo != -1){
                 tabRolesChoisis.push(role);
                 tabRolesDispo.splice(indexDispo,1);
-                nbSV--;
-
+                
+                if(nbSV > 0){
+                   nbSV--; 
+                }
                 res = "Rôle correctement ajouté";
             }
             else{
@@ -260,6 +285,9 @@ supprimerRole : function(role, tabRolesDispo, tabRolesChoisis, nbSV){
             if(indexChoisi != -1){
                 tabRolesDispo.push(role);
                 tabRolesChoisis.splice(indexChoisi,1);
+
+                nbSV++;
+
                 res = "Rôle correctement supprimé";
             }
             else{
@@ -267,7 +295,6 @@ supprimerRole : function(role, tabRolesDispo, tabRolesChoisis, nbSV){
                     res = "Rôle non choisi ou inexistant, veuillez réessayer";
             }
     }
-    console.log(tabRolesChoisis);
     return [tabRolesDispo, tabRolesChoisis, res, nbSV];    
 },
 
@@ -305,5 +332,6 @@ toStringRolesDispo : function(tabRolesDispo){
     }
     return res;
 }
+
 
 }
