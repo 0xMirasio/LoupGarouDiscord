@@ -123,7 +123,7 @@ reveal : function(nomJoueur, tabJoueurs){
 roleDejaVu : function(voyante){
     var str = "-----Joueurs déjà connus-----\n";
     for(i=0;i<voyante.dejaVu.length;i++){
-        str+="**"+voyante.dejaVu[i].nom+"** : **"+voyante.dejaVu[i].role+"**\n";
+        str+="**"+voyante.dejaVu[i]+"**\n";
     }
     str+="--------------------------------\n";
     return str;
@@ -202,18 +202,35 @@ containsIndice : function(nomJoueur, tabJoueurs){
 checkFinJeu : function(tabJoueurs, angeDechu){
     var nbLoup = 0, 
     nbVillageois = 0;
+    var amoureux = [];
+
     for(i=0; i<tabJoueurs.length; i++){
         if(tabJoueurs[i].estVivant && tabJoueurs[i].role == "Loup"){
+            
+            if(tabJoueurs[i].hasOwnProperty("linked")){
+                amoureux.push(tabJoueurs[i]);
+            }
+
             nbLoup++;
+
         }else if(tabJoueurs[i].estVivant){
+
+            if(tabJoueurs[i].hasOwnProperty("linked")){
+                amoureux.push(tabJoueurs[i]);
+            }
+
             nbVillageois++;
         }
     }
 
-    if(angeDechu.peuxGagner){
+    if(angeDechu !=-1 && angeDechu.peuxGagner){
         return [true,3];
     }
-
+    
+    if(amoureux.length == 2 && nbLoup+nbVillageois == 2 ){
+        return [true, 4];
+    }
+    
     if(nbLoup+nbVillageois == 0){
         return [true,2];
     }else if(nbLoup == 0){
