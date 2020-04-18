@@ -39,7 +39,8 @@ annonceDesLoups : function(tabJoueurs, PM) {
         var playerToContact = tabJoueurs[i].nom
         for (j=0; j<PM.length; j++) {
 	    	if (playerToContact == PM[j].author.username && tabJoueurs[i].role == "Loup") {
-		    	PM[j].author.send("Liste des loups : "+fx);
+                PM[j].author.send("Liste des loups : "+fx);
+                PM[j].author.send("Pour selectionner un joueur à tuer, utilisez \"/kill [nom]\"");
 	    	}
         }
     }
@@ -117,6 +118,15 @@ reveal : function(nomJoueur, tabJoueurs){
         }
     }
     return role;
+},
+
+roleDejaVu : function(voyante){
+    var str = "-----Joueurs déjà connus-----\n";
+    for(i=0;i<voyante.dejaVu.length;i++){
+        str+="**"+voyante.dejaVu[i].nom+"** : **"+voyante.dejaVu[i].role+"**\n";
+    }
+    str+="--------------------------------\n";
+    return str;
 },
 
 
