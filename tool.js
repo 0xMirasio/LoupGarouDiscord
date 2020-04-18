@@ -199,7 +199,7 @@ containsIndice : function(nomJoueur, tabJoueurs){
     return -1;
 },
 
-checkFinJeu : function(tabJoueurs){
+checkFinJeu : function(tabJoueurs, angeDechu){
     var nbLoup = 0, 
     nbVillageois = 0;
     for(i=0; i<tabJoueurs.length; i++){
@@ -208,6 +208,10 @@ checkFinJeu : function(tabJoueurs){
         }else if(tabJoueurs[i].estVivant){
             nbVillageois++;
         }
+    }
+
+    if(angeDechu.peuxGagner){
+        return [true,3];
     }
 
     if(nbLoup+nbVillageois == 0){

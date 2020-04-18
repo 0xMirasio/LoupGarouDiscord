@@ -17,8 +17,9 @@ var Players = [];
 var nbLoup = 0;
 var nbSV = 0; //Nombre de simples villageois
 // var Role = ["Loup","Sorcière","Voyante","Cupidon","Chasseur","LoupBlanc","Voleur","Villageois"];
-var rolesDispo = ["Sorcière","Voyante","Cupidon","Chasseur", "Noctambule"];
+var rolesDispo = ["Sorcière","Voyante","Cupidon","Chasseur", "Noctambule", "Ange_Dechu", "Chien_Loup"];
 var rolesChoisis = [];
+var strRolesChoisis;
 var votes = []  //tableau pour le nombre de vote sur chaque joueur
 var aVote = []  //tableau pour savoir qui a voté pour qui pour le tour actuel
 var PM=  [] // tableau pour sauvegarder les object "message" de l'API Discord afin de pouvoir MP les loups
@@ -28,7 +29,7 @@ var phaseChasseur = false;
 var joueurATuer;  //Variable utilisée pour connaitre le joueur à tuer
 var max,index;
 var cpt=0;
-var sorciere, voyante, cupidon, chasseur, noctambule; //Variable pour stocker les rôles spéciaux
+var sorciere, voyante, cupidon, chasseur, noctambule, angeDechu, chienLoup; //Variable pour stocker les rôles spéciaux
 
 
 //END OF VAR GLOBAL SECTION
@@ -91,11 +92,23 @@ bot.on('message', async message => {
 
 				noctambule = getJoueurRole("Noctambule", Players);
 				if(noctambule){
-					noctambule.dejaDormi = [] //Tableau pour stocker les joueurs chez lesquels le noctambule a déjà dormi
+					noctambule.dernierJoueurVisite = null; //Variable pour stocker le dernier joueur auquel le noctambule a rendu visite
 					noctambule.peuxDormir = false;
 				}
 
-                message.channel.send('**Début de la partie...**');
+				angeDechu = getJoueurRole("Ange_Dechu", Players);
+				if(angeDechu != -1){
+					angeDechu.peuxGagner = false;
+				}
+
+				chienLoup = getJoueurRole("Chien_Loup", Players);
+				if(chienLoup !=-1){
+					chienLoup.change = false;
+				}
+				
+
+				await message.channel.send('**Début de la partie...**');
+
                 game_start(message);
                 
             }
@@ -108,7 +121,7 @@ bot.on('message', async message => {
 });
 
 // OK (/play)
-bot.on('message', message => {	
+bot.on('message', async message => {	
 	var nomJoueur = message.author.username;
 	var idJoueur = message.author;
 	if (message.content === '/play') {
@@ -116,13 +129,19 @@ bot.on('message', message => {
 				//if(!tool.contains(nomJoueur, Players)){
 					Players.push(new Player(nomJoueur,idJoueur))
 					PM.push(message);
-					nbPlayer++;
+					await nbPlayer++;
 					message.channel.send("Ajout de **" + nomJoueur + "** à la partie");
 					message.channel.send("Nombre de joueurs actuels : " + nbPlayer);
 
 					//maj 
 					nbLoup = Math.floor(nbPlayer/5) +1;
-					nbSV= nbPlayer-nbLoup-rolesChoisis.length;
+					
+					nbSV = nbPlayer-nbLoup-rolesChoisis.length;
+
+					if(nbSV<0){
+						nbSV=0;
+					}
+
 				//}
 				//else{
 				//	message.channel.send("Joueur déjà présent  !");
@@ -204,7 +223,12 @@ bot.on('message', message => {
 //Commande pour afficher la liste des roles 
 bot.on('message', message => {
     if (message.content === '/roleList') {
-       message.channel.send(tool.toStringRoles(rolesChoisis,nbLoup,nbSV));
+
+		if(cpt == 0){
+			strRolesChoisis = tool.toStringRoles(rolesChoisis,nbLoup,nbSV);
+		}
+		message.channel.send(strRolesChoisis);
+		
     }
 });
 
@@ -468,12 +492,13 @@ bot.on('message', message => {
 
 			if (indexJoueurDesigne == -1) {
 				message.reply("Ce joueur n'existe pas !");
-			}else if(noctambule.dejaDormi.includes(Players[indexJoueurDesigne])){
-				message.reply("Vous avez déjà dormi chez ce joueur");
+			}else if(noctambule.dernierJoueurVisite == joueurDesigne){
+				message.reply("Vous ne pouvez pas dormir chez le même joueur 2 fois de suite");
 			}
 			else {
 				noctambule.peuxDormir = false;
-				noctambule.dejaDormi.push(Players[indexJoueurDesigne]);
+				noctambule.dernierJoueurVisite = joueurDesigne;
+				noctambule.idJoueur.send("Vous allez dormir chez **"+joueurDesigne+"**");
 				Players[indexJoueurDesigne].idJoueur.send("**"+noctambule.nom+"** est venu dormir chez vous cette nuit chez vous. Vous êtes privé de vos pouvoirs cette nuit");
 				Players[indexJoueurDesigne].noctambule = true;
 			}
@@ -484,6 +509,20 @@ bot.on('message', message => {
 	}
 });
 
+
+//Commande pour le chien Loup
+bot.on('message', message => {	
+	if (message.content === '/change') {
+
+		if(tool.checkRole(message.author.username, "Chien_Loup", Players) != -1 && chienLoup.estVivant){
+			chienLoup.change = true;
+			chienLoup.idJoueur.send("Vous êtes à présent un **Loup**");
+		}else{
+			message.reply("Vous n'avez pas le droit d'utilser cette commande !");
+		}
+
+	}
+});
 
 
 //----------------------CLASSE ET FONCTIONS--------------------//
@@ -669,13 +708,27 @@ async function deliberationJour(message){
 	if (max != 0)  {
 		index = tool.checkEgalite(max, votes);
 		if (index != -1) {
-			joueurATuer = Players[index];
 			
+			joueurATuer = Players[index];
+
 			var retourKill = kill(joueurATuer,Players);
+			
 			message.channel.send("**"+joueurATuer.nom+"** a été éliminé.e!\nIl/Elle etait **"+joueurATuer.role+"**");
 			
 			//Cas Amoureux
 			await checkAmoureux(message,retourKill);
+
+			//Check l'ange dechu
+			if(angeDechu !=-1 && angeDechu.role == "Ange_Dechu"){
+				if(cpt == 1){
+					if(angeDechu.estVivant){
+						angeDechu.role = "Villageois";
+					}else{
+						angeDechu.peuxGagner = true;
+					}
+				}
+			}
+			
 
 		}else{
 			message.channel.send("Les habitants n'ont pas réussi à se décider");
@@ -699,11 +752,11 @@ function game_start(message) {
 	cpt++;
 	message.channel.send('DEBUT NUIT : '+ cpt);
 	message.channel.send('-------------------------------------------------------------------\n\n');
-	cupidon_time(message);
+	chienLoup_time(message);
 }
 
 async function terminerJeu(message){
-	var dataCheckFin = tool.checkFinJeu(Players);
+	var dataCheckFin = tool.checkFinJeu(Players,angeDechu);
 	var jeuEstFini = dataCheckFin[0];
 	var retourCheckFin = dataCheckFin[1];
 
@@ -717,6 +770,9 @@ async function terminerJeu(message){
 				break;
 			case 2 :
 				await message.channel.send("La partie est terminée ! Personne n'a gagné !");
+				break;
+			case 3 :
+				await message.channel.send("La partie est terminée ! "+angeDechu.nom+ " a gagné !");
 		}
 		process.exit();
 	}
@@ -725,13 +781,47 @@ async function terminerJeu(message){
 
 //----------------------JEU PRINCIPAL--------------------//
 
-function cupidon_time(message){
+
+async function chienLoup_time(message){
+	if(chienLoup != -1 && chienLoup.role == "Chien_Loup"){
+		
+		var timer = new time.Timer();
+
+		message.channel.send("Le Chien Loup a **20** secondes pour choisir son camp");
+		await chienLoup.idJoueur.send("Vous avez **20** secondes pour choisir entre rester **Villageois** (ne rien faire) ou devenir un **Loup** (/change)");
+
+
+		timer.start({countdown: true, startValues: {seconds: 20}});
+		timer.addEventListener('secondsUpdated', function (e) {
+				if (timer.getTimeValues().toString().split("0:00:")[1] % 10 == 0 && timer.getTimeValues().toString().split("0:00:")[1] != '00') {
+					message.channel.send(timer.getTimeValues().toString().split("0:00:")[1] +" seconds left !");
+				};
+		});
+
+		timer.addEventListener('targetAchieved', function (e) {
+			if(chienLoup.change){
+				chienLoup.role = "Loup";
+				nbLoup++;
+			}else{
+				chienLoup.role = "Villageois";
+				nbSV++;
+			}
+			cupidon_time(message);
+		});
+
+	}else{
+		cupidon_time(message);
+	}
+	
+}
+
+async function cupidon_time(message){
 	if(cupidon != -1 && cupidon.estVivant && cupidon.peuxLier){
 		
 		var timer = new time.Timer();
 
 		message.channel.send("\nCupidon à **30** secondes pour sélectionner 2 joueurs dont le destin sera lié pour le reste de la partie !");
-		cupidon.idJoueur.send("Vous avez **30** secondes pour désigner 2 joueurs à lier (/link [nom1] [nom2]) !");
+		await cupidon.idJoueur.send("Vous avez **30** secondes pour désigner 2 joueurs à lier (/link [nom1] [nom2]) !");
 
 		timer.start({countdown: true, startValues: {seconds: 30}});
 		timer.addEventListener('secondsUpdated', function (e) {
@@ -751,7 +841,32 @@ function cupidon_time(message){
 }
 
 
-function loupandvoyante_time(message) {
+async function noctambule_time(message){
+	if(noctambule !=-1 && noctambule.estVivant){
+		noctambule.peuxDormir = true;
+		var timer = new time.Timer();
+
+		message.channel.send("\nLe noctambule à **30** secondes pour décider chez qui il va aller dormir! Cette personne sera privée de ses pouvoirs pour la nuit");
+		await noctambule.idJoueur.send("Vous avez **30** secondes pour choisir chez qui aller dormir (/sleep [nom]) !");
+
+		timer.start({countdown: true, startValues: {seconds: 30}});
+		timer.addEventListener('secondsUpdated', function (e) {
+				if (timer.getTimeValues().toString().split("0:00:")[1] % 10 == 0 && timer.getTimeValues().toString().split("0:00:")[1] != '00') {
+					message.channel.send(timer.getTimeValues().toString().split("0:00:")[1] +" seconds left !");
+				};
+		});
+
+		timer.addEventListener('targetAchieved', function (e) {
+			noctambule.peuxDormir = false;
+			loupandvoyante_time(message);
+		});
+	}else{
+		loupandvoyante_time(message);
+	}
+}
+
+
+async function loupandvoyante_time(message) {
 	joueurATuer = 0;
 
 	message.channel.send('\nLes loups ont **30s** pour choisir leur victime...');
@@ -765,13 +880,13 @@ function loupandvoyante_time(message) {
 		//Si le noctambule dors chez la voyante
 		if(voyante.hasOwnProperty("noctambule") ){
 			delete voyante.noctambule;
-			voyante.idJoueur.send("Vous n'avez pas vos pouvoirs cette nuit !");
+			await voyante.idJoueur.send("Vous n'avez pas vos pouvoirs cette nuit !");
 		}else{
 			message.channel.send('\nLa voyante a **30s** pour reveler une personne...');
 			voyante.idJoueur.send("/list");
 			//Liste des joueurs déjà vu
 			voyante.idJoueur.send(tool.roleDejaVu(voyante));
-			voyante.idJoueur.send("Vous avez **30s** pour révéler le rôle d'une personne !");
+			await voyante.idJoueur.send("Vous avez **30s** pour révéler le rôle d'une personne !");
 			voyante.peuxVoir = true;
 		}
 	}
@@ -813,7 +928,7 @@ function loupandvoyante_time(message) {
 }
 
 
-function sorciere_time(message, joueurATuer) {
+async function sorciere_time(message, joueurATuer) {
 	
 	//Check si la sorcière existe et si elle est en vie
 	if(sorciere !=-1 && sorciere.estVivant){
@@ -821,7 +936,7 @@ function sorciere_time(message, joueurATuer) {
 		//Si le noctambule dors chez la sorcière
 		if(sorciere.hasOwnProperty("noctambule") ){
 			delete sorciere.noctambule;
-			sorciere.idJoueur.send("Vous n'avez pas vos pouvoirs cette nuit !");
+			await sorciere.idJoueur.send("Vous n'avez pas vos pouvoirs cette nuit !");
 			deliberationNuit(message,joueurATuer);
 			
 		}else{
@@ -833,19 +948,22 @@ function sorciere_time(message, joueurATuer) {
 			if(!sorciere.peuxSauver && !sorciere.peuxTuer){
 				tempsTimer = 5;
 			}
-			
-			//Envoie un message en fonction du vote des loups
-			if ( (max == 0 || joueurATuer == 0) && sorciere.peuxTuer) {
-				sorciere.idJoueur.send("Personne n'a été tué. Vous pouvez utilisez votre potion de mort (/curse [nom]) ou ne rien faire");
-			}
-			else if(max !=0 && joueurATuer != 0 && sorciere.peuxSauver) {	
-				sorciere.idJoueur.send("**"+joueurATuer.nom +"** a été tué par les loups, Vous pouvez utilisez votre potion de mort (/curse [nom]) sur quelqu'un ou sauver **"+joueurATuer.nom + "** (/save)");
-			
-			}else if(sorciere.peuxTuer){
-				sorciere.idJoueur.send("Vous pouvez utilisez votre potion de mort (/curse [nom]) ou ne rien faire");
-			}
 
 			message.channel.send("\nLa Sorcière à **30** secondes pour utiliser ses pouvoirs !");
+
+
+			//Envoie un message en fonction du vote des loups
+			if ( (max == 0 || joueurATuer == 0) && sorciere.peuxTuer) {
+				await sorciere.idJoueur.send("Personne n'a été tué. Vous pouvez utilisez votre potion de mort (/curse [nom]) ou ne rien faire");
+			}
+			else if(max !=0 && joueurATuer != 0 && sorciere.peuxSauver) {	
+				await sorciere.idJoueur.send("**"+joueurATuer.nom +"** a été tué par les loups, Vous pouvez utilisez votre potion de mort (/curse [nom]) sur quelqu'un ou sauver **"+joueurATuer.nom + "** (/save)");
+			
+			}else if(sorciere.peuxTuer){
+				await sorciere.idJoueur.send("Vous pouvez utilisez votre potion de mort (/curse [nom]) ou ne rien faire");
+			}
+
+			
 			//Debut du timer
 			timer.start({countdown: true, startValues: {seconds: tempsTimer}});
 			timer.addEventListener('secondsUpdated', function (e) {
@@ -859,7 +977,6 @@ function sorciere_time(message, joueurATuer) {
 			//Vote des loups, sorcière, etc..
 			timer.addEventListener('targetAchieved', function (e) {
 				
-
 				message.channel.send("Fin du temps !\n");
 				sorciere.peuxAgir = false;
 				
@@ -884,16 +1001,16 @@ function village_time(message){
 	message.channel.send("/list");
 
 	timer.start({countdown: true, startValues: {seconds: 30}});
-		timer.addEventListener('secondsUpdated', function (e) {
-				if (timer.getTimeValues().toString().split("0:00:")[1] % 10 == 0 && timer.getTimeValues().toString().split("0:00:")[1] != '00') {
-					message.channel.send(timer.getTimeValues().toString().split("0:00:")[1] +" seconds left !");
-				};
-		});
+	timer.addEventListener('secondsUpdated', function (e) {
+			if (timer.getTimeValues().toString().split("0:00:")[1] % 10 == 0 && timer.getTimeValues().toString().split("0:00:")[1] != '00') {
+				message.channel.send(timer.getTimeValues().toString().split("0:00:")[1] +" seconds left !");
+			};
+	});
 
-		timer.addEventListener('targetAchieved', function (e) {
-			phaseVillage = false;
-			deliberationJour(message);
-		});
+	timer.addEventListener('targetAchieved', function (e) {
+		phaseVillage = false;
+		deliberationJour(message);
+	});
 }
 
 
@@ -906,7 +1023,7 @@ async function chasseur_time(message, temps){
 		var timer = new time.Timer();
 
 		message.channel.send("\nLe Chasseur à **30** secondes pour se venger !");
-		chasseur.idJoueur.send("Vous avez **30** secondes pour désigner quelqu'un à tuer (/kill [nom]) !");
+		await chasseur.idJoueur.send("Vous avez **30** secondes pour désigner quelqu'un à tuer (/kill [nom]) !");
 		chasseur.idJoueur.send("/list");
 
 		timer.start({countdown: true, startValues: {seconds: 30}});
@@ -952,28 +1069,6 @@ async function chasseur_time(message, temps){
 
 }
 
-function noctambule_time(message){
-	if(noctambule !=-1 && noctambule.estVivant){
-		noctambule.peuxDormir = true;
-		var timer = new time.Timer();
 
-		message.channel.send("\nLe noctambule à **30** secondes pour décider chez qui il va aller dormir! Cette personne sera privée de ses pouvoirs pour la nuit");
-		noctambule.idJoueur.send("Vous avez **30** secondes pour choisir chez qui aller dormir (/sleep [nom]) !");
-
-		timer.start({countdown: true, startValues: {seconds: 30}});
-		timer.addEventListener('secondsUpdated', function (e) {
-				if (timer.getTimeValues().toString().split("0:00:")[1] % 10 == 0 && timer.getTimeValues().toString().split("0:00:")[1] != '00') {
-					message.channel.send(timer.getTimeValues().toString().split("0:00:")[1] +" seconds left !");
-				};
-		});
-
-		timer.addEventListener('targetAchieved', function (e) {
-			noctambule.peuxDormir = false;
-			loupandvoyante_time(message);
-		});
-	}else{
-		loupandvoyante_time(message);
-	}
-}
 
 
