@@ -30,7 +30,7 @@ annonceDesLoups : function(tabJoueurs, PM) {
     for (i=0; i<tabJoueurs.length ; i++) {
 
         var playerToContact = tabJoueurs[i].nom
-        if (tabJoueurs[i].role == "Loup") {
+        if (tabJoueurs[i].role == "Loup-Garou") {
             fx += "**"+playerToContact + "**   ";
        
         }
@@ -38,8 +38,8 @@ annonceDesLoups : function(tabJoueurs, PM) {
     for (i=0; i<tabJoueurs.length ; i++) {
         var playerToContact = tabJoueurs[i].nom
         for (j=0; j<PM.length; j++) {
-	    	if (playerToContact == PM[j].author.username && tabJoueurs[i].role == "Loup") {
-                PM[j].author.send("Liste des loups : "+fx);
+	    	if (playerToContact == PM[j].author.username && tabJoueurs[i].role == "Loup-Garou") {
+                PM[j].author.send("Liste des Loups-Garou : "+fx);
                 PM[j].author.send("Pour selectionner un joueur à tuer, utilisez \"/kill [nom]\"");
 	    	}
         }
@@ -64,7 +64,6 @@ resetVotes: function(votes,aVote){
 		votes[i] = 0;
 		aVote[i ]= -1;
     }
-    console.log(votes+"  |  "+aVote);
     return [votes,aVote];
 },
 
@@ -139,15 +138,15 @@ contains : function(nomJoueur, tabJoueurs){
     return false;
 },
 
-loupkill : function(name,message, tabJoueurs) {
-	for(i = 0; i<tabJoueurs.length; i++){
-	   if (tabJoueurs[i].role == "Loup") {
-		   message.author = tabJoueurs[i].idJoueur;
-		   message.author.send("bite");
-	   }
-	   message.author.id = tabJoueurs[0].idJoueur;
-    }
-},
+// loupkill : function(name,message, tabJoueurs) {
+// 	for(i = 0; i<tabJoueurs.length; i++){
+// 	   if (tabJoueurs[i].role == "Loup-Garou") {
+// 		   message.author = tabJoueurs[i].idJoueur;
+// 		   message.author.send("bite");
+// 	   }
+// 	   message.author.id = tabJoueurs[0].idJoueur;
+//     }
+// },
 
 //Check si un joueur donné a le role "role"
 //Renvoie l'indice du joueur dans le tableau de joueur si c'est le cas
@@ -205,7 +204,7 @@ checkFinJeu : function(tabJoueurs, angeDechu){
     var amoureux = [];
 
     for(i=0; i<tabJoueurs.length; i++){
-        if(tabJoueurs[i].estVivant && tabJoueurs[i].role == "Loup"){
+        if(tabJoueurs[i].estVivant && tabJoueurs[i].role == "Loup-Garou"){
             
             if(tabJoueurs[i].hasOwnProperty("linked")){
                 amoureux.push(tabJoueurs[i]);
@@ -333,16 +332,26 @@ supprimerRole : function(role, tabRolesDispo, tabRolesChoisis, nbSV){
 toStringRoles: function(tabRolesChoisis, nbLoup, nbSV){
     var res ="";
     if(nbLoup > 0){
-        res+= "Loup : x"+nbLoup;
+        res+= "**Loup-Garou** : x"+nbLoup;
     }
     if(nbSV > 0){
-        res+= "\nVillageois : x"+nbSV;
+        res+= "\n**Villageois** : x"+nbSV;
     }
     for(i=0;i<tabRolesChoisis.length;i++){
-        res+="\n"+tabRolesChoisis[i];
+        res+="\n**"+tabRolesChoisis[i]+"**";
     }
     return res;
 },
+
+
+toStringRolesDispo : function(tabRolesDispo){
+    res="";
+    for(i=0; i<tabRolesDispo.length;i++){
+        res+="**"+tabRolesDispo[i]+"**  ";
+    }
+    return res;
+},
+
 
 //met à jour le tableau de roles disponibles en fonction du tableau de roles déjà choisi
 majRolesDispo : function(tabRolesDispo, tabRolesChoisis){
@@ -356,13 +365,7 @@ majRolesDispo : function(tabRolesDispo, tabRolesChoisis){
     }
 },
 
-toStringRolesDispo : function(tabRolesDispo){
-    res="";
-    for(i=0; i<tabRolesDispo.length;i++){
-        res+=tabRolesDispo[i]+"  ";
-    }
-    return res;
-}
+
 
 
 }
