@@ -26,22 +26,32 @@ annonceRole : function(tabJoueurs, PM) {
 },
 
 annonceDesLoups : function(tabJoueurs, PM) {
-    var fx = '';
-    for (i=0; i<tabJoueurs.length ; i++) {
+    var fx = "-----LISTE DES LOUPS-----\n";
 
-        var playerToContact = tabJoueurs[i].nom
+    for (i=0; i<tabJoueurs.length ; i++) {
         if (tabJoueurs[i].role == "Loup-Garou") {
-            fx += "**"+playerToContact + "**   ";
+            fx += "**"+tabJoueurs[i].nom + "**   ";
        
         }
     }
+    
     for (i=0; i<tabJoueurs.length ; i++) {
         var playerToContact = tabJoueurs[i].nom
         for (j=0; j<PM.length; j++) {
 	    	if (playerToContact == PM[j].author.username && tabJoueurs[i].role == "Loup-Garou") {
-                PM[j].author.send("Liste des Loups-Garou : "+fx);
+                PM[j].author.send(fx);
                 PM[j].author.send("Pour selectionner un joueur à tuer, utilisez \"/kill [nom]\"");
 	    	}
+        }
+    }
+},
+
+getLoupsGarou : function(tabJoueurs){
+    var str = "-----LISTE DES LOUPS-----\n";
+    for (i=0; i<tabJoueurs.length ; i++) {
+        if (tabJoueurs[i].role == "Loup-Garou") {
+            str += "**"+tabJoueurs[i].nom + "**   ";
+       
         }
     }
 },
@@ -198,7 +208,7 @@ containsIndice : function(nomJoueur, tabJoueurs){
     return -1;
 },
 
-checkFinJeu : function(tabJoueurs, angeDechu){
+checkFinJeu : function(tabJoueurs, angeDechu, lgb){
     var nbLoup = 0, 
     nbVillageois = 0;
     var amoureux = [];
@@ -222,11 +232,16 @@ checkFinJeu : function(tabJoueurs, angeDechu){
         }
     }
 
+    if(lgb !=-1 && nbLoup == 1 && lgb.estVivant){
+        return [true,5];
+    }
+
     if(angeDechu !=-1 && angeDechu.peuxGagner){
         return [true,3];
     }
+
     
-    if(amoureux.length == 2 && nbLoup+nbVillageois == 2 ){
+    if(amoureux.length == 2 && nbLoup+nbVillageois == 2 && nbLoup != 0){
         return [true, 4];
     }
     
@@ -330,7 +345,7 @@ supprimerRole : function(role, tabRolesDispo, tabRolesChoisis, nbSV){
 
 //Renvoie un String affichant la liste des roles
 toStringRoles: function(tabRolesChoisis, nbLoup, nbSV){
-    var res ="";
+    var res ="------LISTE DES ROLES------\n";
     if(nbLoup > 0){
         res+= "**Loup-Garou** : x"+nbLoup;
     }
