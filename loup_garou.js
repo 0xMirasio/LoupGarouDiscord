@@ -117,9 +117,10 @@ bot.on('message', async message => {
 
 				lgb = getJoueurRole("Loup_garou_blanc", Players);
 				if(lgb !=-1){
+					nbLoup++;
 					lgb.peuxTuerLoup = false;
 					lgb.aTueLoup = null;
-					lgb.subRole = role;
+					lgb.subRole = lgb.role;
 					lgb.role = "Loup-Garou";
 					lgb.getRole = function(){return this.subRole};
 				}
@@ -275,7 +276,8 @@ bot.on('message', message => {
 	if (message.content === '/help') {
 		message.channel.send('Liste des commandes :  \n **/loupStart **Débute la partie **(ALL)** \n** /loupStop** Termine la partie  **(ALL)** \n **/play** Vous ajoute à la partie **(ALL)** \n **/leave** Quitte la partie **(ALL)** \n **/roleDispo** Liste des roles disponibles **(ALL)** \n **/roleList** Liste les roles de la partie  **(ALL)**\n **/add** Ajoute un role à la partie **(ALL)**\n **/del** Supprime un role de la partie **(ALL)** \n **/list** Affiche les joueurs vivants **(ALL)**') 
 	    message.channel.send('**/kill** [PLAYER] Envoyez un MP à LoupGarou-Bot pour désigner un joueur (autre qu\'un loup) à tuer pendant la nuit **(Loup-Garou)** \n **/curse** [PLAYER] Envoyez un MP à LoupGarou-Bot pour tuez un joueur  **(Sorcière)**  \n **/save** Envoyez un MP à LoupGarou-Bot pour sauver un joueur **(Sorcière)** \n **/reveal** [PLAYER] Envoyez un MP à LoupGarou-Bot pour afficher le role du joueur **(Voyante)**\n **/link** [PLAYER1] [PLAYER2] Envoyez un MP à LoupGarou-Bot pour lier 2 joueurs **(Cupidon)**\n **/hunt** [PLAYER] Envoyez un MP à LoupGarou-Bot pour tuer un joueur **(Chasseur)**');
-		message.channel.send('**/sleep** [PLAYER] Envoyez un MP à LoupGarou-Bot pour aller dormir chez un joueur (1 joueur différent chaque tour) **(Noctambule)**\n **/change** Envoyez un MP à LoupGarou-Bot pour devenir Loup-Garou **(Chien-Loup)**\n **/protect** [PLAYER] Envoyez un MP à LoupGarou-Bot pour protéger un joueur durant la nuit (1 joueur différent chaque tour) **(Salvateur)**\n **/wolfKill [PLAYER_LOUP]** Envoyez un MP à LoupGarou-Bot pour tuer un Loup-Garou au choix **(Loup-Garou Blanc)**\n  **/vote** [PLAYER] votez un joueur que vous pensez être un loup **(ALL)** \n')
+		message.channel.send('**/sleep** [PLAYER] Envoyez un MP à LoupGarou-Bot pour aller dormir chez un joueur (1 joueur différent chaque tour) **(Noctambule)**\n **/change** Envoyez un MP à LoupGarou-Bot pour devenir Loup-Garou **(Chien-Loup)**\n **/protect** [PLAYER] Envoyez un MP à LoupGarou-Bot pour protéger un joueur durant la nuit (1 joueur différent chaque tour) **(Salvateur)**\n **/wolfKill [PLAYER_LOUP]** Envoyez un MP à LoupGarou-Bot pour tuer un Loup-Garou au choix **(Loup-Garou Blanc)**\n  **/vote** [PLAYER] votez un joueur que vous pensez être un loup **(ALL)** \n');
+		message.channel.send('**/modele** [PLAYER] Envoyez un MP à LoupGarou-Bot pour choisir le joueur modèle **(Enfant Sauvage)**\n');
 	}
 })
 
@@ -592,7 +594,8 @@ bot.on('message', message =>{
 bot.on('message', message =>{
 	if(message.content.startsWith('/wolfKill')){
 		
-		if(tool.checkRole(message.author.username, lgb.getRole() , Players) != -1 && lgb.estVivant && lgb.peuxTuerLoup && !lgb.hasOwnProperty("noctambule") ){
+		indexLoup = tool.checkRole(message.author.username, "Loup-Garou" , Players);
+		if( indexLoup != -1 && Players[indexLoup].hasOwnProperty('subRole') && Players[indexLoup].subRole == lgb.getRole() && lgb.estVivant && lgb.peuxTuerLoup && !lgb.hasOwnProperty("noctambule") ){
 			var loupDesigne = message.content.split(" ")[1];
 			var indexLoupDesigne = tool.containsIndice(loupDesigne, Players);
 
@@ -805,7 +808,7 @@ async function deliberationNuit(message, joueurATuer){
 			cptMort++
 			
 			message.channel.send("**"+lgb.aTueLoup.nom+"** a été éliminé.e!\nIl/Elle etait **"+lgb.aTueLoup.getRole()+"**");
-			cptMort = await checkAmoureux(message,retourKill);
+			cptMort += await checkAmoureux(message,retourKill);
 		}
 		lgb.aTueLoup = null;
 	}
@@ -1042,7 +1045,7 @@ async function enfantSauvage_time(message){
 		var timer = new time.Timer();
 
 		message.channel.send("\n-------------------------------\nL'enfant sauvage à **30** secondes pour sélectionner 1 joueur qui deviendra son modèle !");
-		await enfantSauvage.idJoueur.send("Vous avez **30** secondes pour choisir un joueur qui sera votre modèl. A sa mort, vous deviendrez **Loup-Garou** !");
+		await enfantSauvage.idJoueur.send("Vous avez **30** secondes pour choisir un joueur qui sera votre modèle (/modele [nom]). A sa mort, vous deviendrez **Loup-Garou** !");
 
 		timer.start({countdown: true, startValues: {seconds: 30}});
 		timer.addEventListener('secondsUpdated', function (e) {
@@ -1166,7 +1169,7 @@ async function loupandvoyante_time(message) {
 	votes = datasVotes[0];
 	aVote = datasVotes[1];
 	
-	timer.start({countdown: true, startValues: {seconds: 30}});
+	timer.start({countdown: true, startValues: {seconds: 10}});
 	timer.addEventListener('secondsUpdated', function (e) {
 		if (timer.getTimeValues().toString().split("0:00:")[1] % 10 == 0 && timer.getTimeValues().toString().split("0:00:")[1] != '00') {
 			message.channel.send(timer.getTimeValues().toString().split("0:00:")[1] +" seconds left !");
@@ -1204,8 +1207,7 @@ async function lgb_time(message){
 			await lgb.idJoueur.send("Vous n'avez pas vos pouvoirs cette nuit !");
 		}else{
 			lgb.peuxTuerLoup = true;
-			await voyante.idJoueur.send("Vous avez **20s** pour tuer ou non un **Loup-Garou** !");
-			
+			await lgb.idJoueur.send("Vous avez **20s** pour tuer ou non un **Loup-Garou** (/wolfKill [nom] )!");
 		}
 		var timer = new time.Timer();
 
@@ -1312,7 +1314,7 @@ async function village_time(message){
 	message.channel.send("\n-------------------------------\nLe village à **20** secondes pour décider de la personne à éliminer !");
 	message.channel.send("/list");
 
-	timer.start({countdown: true, startValues: {seconds: 30}});
+	timer.start({countdown: true, startValues: {seconds: 10}});
 	timer.addEventListener('secondsUpdated', function (e) {
 			if (timer.getTimeValues().toString().split("0:00:")[1] % 10 == 0 && timer.getTimeValues().toString().split("0:00:")[1] != '00') {
 				message.channel.send(timer.getTimeValues().toString().split("0:00:")[1] +" seconds left !");

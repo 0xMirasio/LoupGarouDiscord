@@ -18,8 +18,8 @@ annonceRole : function(tabJoueurs, PM) {
         var playerToContact = tabJoueurs[i].nom
 		for (j=0; j<PM.length; j++) {
 			if (playerToContact == PM[j].author.username) {
-                PM[j].author.send("-------------------DEBUT NOUVELLE PARTIE-------------------------");
-                PM[j].author.send("Ton role est : " + tabJoueurs[i].role); 
+                PM[j].author.send("-------------------DEBUT NOUVELLE PARTIE-------------------");
+                PM[j].author.send("Ton role est : " + tabJoueurs[i].getRole()); 
 			}
 		}
 	}
@@ -54,6 +54,7 @@ getLoupsGarou : function(tabJoueurs){
        
         }
     }
+    return str;
 },
 
 
