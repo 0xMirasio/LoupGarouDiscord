@@ -1,3 +1,5 @@
+
+
 module.exports = {
 
     knuthfisheryates : function(arr) {
@@ -13,37 +15,29 @@ module.exports = {
 
 
 //-------------------ANNONCES --------------------//
-annonceRole : function(tabJoueurs, PM) {
+annonceRole : async function(tabJoueurs) {
 	for (i=0; i<tabJoueurs.length ; i++) {
-        var playerToContact = tabJoueurs[i].nom
-		for (j=0; j<PM.length; j++) {
-			if (playerToContact == PM[j].author.username) {
-                PM[j].author.send("-------------------DEBUT NOUVELLE PARTIE-------------------");
-                PM[j].author.send("Ton role est : " + tabJoueurs[i].getRole()); 
-			}
-		}
+       
+        tabJoueurs[i].idJoueur.send("-------------------DEBUT NOUVELLE PARTIE-------------------");
+        await tabJoueurs[i].sendMessageRole();
+			
 	}
 },
 
-annonceDesLoups : function(tabJoueurs, PM) {
+annonceDesLoups : function(tabJoueurs) {
     var fx = "-----LISTE DES LOUPS-----\n";
-
+    var loups = [];
     for (i=0; i<tabJoueurs.length ; i++) {
         if (tabJoueurs[i].role == "Loup-Garou") {
             fx += "**"+tabJoueurs[i].nom + "**   ";
-       
+            loups.push(tabJoueurs[i]);
         }
     }
     
-    for (i=0; i<tabJoueurs.length ; i++) {
-        var playerToContact = tabJoueurs[i].nom
-        for (j=0; j<PM.length; j++) {
-	    	if (playerToContact == PM[j].author.username && tabJoueurs[i].role == "Loup-Garou") {
-                PM[j].author.send(fx);
-                PM[j].author.send("Pour selectionner un joueur à tuer, utilisez \"/kill [nom]\"");
-	    	}
-        }
+    for(loup of loups){
+        loup.idJoueur.send(fx);
     }
+
 },
 
 getLoupsGarou : function(tabJoueurs){
@@ -66,16 +60,16 @@ initVotes :function(n, votes, aVote){
 		votes.push(0);
 		aVote.push(-1);
     }
-    return [votes,aVote];
+    // return [votes,aVote];
 },
 
 //remise à 0 entre chaque tour
 resetVotes: function(votes,aVote){
 	for(i=0; i<votes.length; i++){
 		votes[i] = 0;
-		aVote[i ]= -1;
+		aVote[i]= -1;
     }
-    return [votes,aVote];
+    // return [votes,aVote];
 },
 
 checkEgalite : function(max, votes){
@@ -174,7 +168,7 @@ checkRole : function(nomJoueur, role, tabJoueurs){
 checkPlayer : function(name, tabJoueurs) {
     for(i = 0; i<tabJoueurs.length;i++){
         if(tabJoueurs[i].nom == name){
-           return 1;
+           return i;
         }
     }
     return -1;
@@ -182,7 +176,7 @@ checkPlayer : function(name, tabJoueurs) {
 
 existeRole : function(role,tabJoueurs){
     for(i=0;i<tabJoueurs.length;i++){
-        if(tabJoueurs[i].role==role){
+        if(tabJoueurs[i].getRole() == role){
             return i;
         }
     }
@@ -256,6 +250,15 @@ checkFinJeu : function(tabJoueurs, angeDechu, lgb){
 
     return [false,0];
 },
+
+
+// arrayDelete : function(array, val){
+//     return array
+//     .filter(
+//         function(elem){
+//             return elem != val; 
+//         });
+// },
 
 //-------------------GESTION ROLES--------------------//
 
