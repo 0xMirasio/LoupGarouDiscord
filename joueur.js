@@ -7,7 +7,7 @@ class Player{
 		this.estVivant = true;
         this.role = role || null;
         this.peuxAgir = false;
-        this.tempsDeJeu = 30;
+        this.tempsDeJeu = 20;
         // this.unique = false;
 	}
 	setRole(role){
@@ -183,7 +183,9 @@ class Chasseur extends Player{
     }
 
     messageJoueur(){
+     
         return "Vous avez **"+this.tempsDeJeu+"** secondes pour désigner quelqu'un à tuer (/action [nom]) !";
+        
     }
 
     messageChannel(){
@@ -334,12 +336,12 @@ class Sorciere extends Player{
 
     action(message, params){
 
-            var commande = params[0];
-            if(commande == "save" && params.length == 2){
+        console.log(params.length);
+            if(params[0] == "save" && params.length == 2){
                 this.save();
-            }else if(commande == "curse" && params.length == 3){
-                var nomJoueurDesigne = params[1];
-                var tabJoueurs = params[2];
+            }else if(params.length == 2){
+                var nomJoueurDesigne = params[0];
+                var tabJoueurs = params[1];
                 this.curse(nomJoueurDesigne,tabJoueurs);
             }else{
                 message.reply("Mauvais usage de la commande");
@@ -387,13 +389,13 @@ class Sorciere extends Player{
         }else{
             var str = "Vous avez **"+this.tempsDeJeu+"** secondes pour utiliser vos pouvoirs !";
             if (  (this.joueurATuer == null || this.joueurATuer.hasOwnProperty('estSauve')) && this.peuxTuer) {
-				str +="\nPersonne n'a été désigné par les loups. Vous pouvez utilisez votre potion de mort (/action curse [nom]) ou ne rien faire";
+				str +="\nPersonne n'a été désigné par les loups. Vous pouvez utilisez votre potion de mort (/action [nom]) ou ne rien faire";
 			}
 			else if(this.joueurATuer != null && this.peuxSauver) {	
-				str+="\n**"+this.joueurATuer.nom +"** a été désigné par les loups, Vous pouvez utilisez votre potion de mort (/action curse [nom]) sur quelqu'un ou sauver **"+this.joueurATuer.nom + "** (/action save)";
+				str+="\n**"+this.joueurATuer.nom +"** a été désigné par les loups, Vous pouvez utilisez votre potion de mort (/action [nom]) sur quelqu'un ou sauver **"+this.joueurATuer.nom + "** (/action save)";
 			
 			}else if(this.peuxTuer){
-				str+="\nVous pouvez utilisez votre potion de mort (/action curse [nom]) ou ne rien faire";
+				str+="\nVous pouvez utilisez votre potion de mort (/action [nom]) ou ne rien faire";
 			}else{
                 str+="\nVous ne pouvez rien faire cette nuit";
             }
@@ -692,7 +694,7 @@ class ChienLoup extends LoupGarou{
         if(this.peuxManger){
             return super.messageChannel();
         }
-        return "\n-------------------------------\nLe Chien Loup a **"+this.tempsDeJeu+"** secondes pour choisir son camp";
+        return "\n-------------------------------\nLe **Chien-Loup** a **"+this.tempsDeJeu+"** secondes pour choisir son camp";
     }
 
     async sendMessageRole(){
@@ -738,7 +740,7 @@ class EnfantSauvage extends LoupGarou{
         if (indexJoueurDesigne == -1) {
             message.reply("Ce joueur n'existe pas !");
         }else if(!tabJoueurs[indexJoueurDesigne].estVivant){
-            message.reply("Ce Loup est mort !");
+            message.reply("Ce joueur est mort !");
         }else if(tabJoueurs.nom == nomJoueurDesigne){
             message.reply("Vous n'avez pas le droit de vous prendre comme modèle !");
         }else{
@@ -749,11 +751,17 @@ class EnfantSauvage extends LoupGarou{
     }
 
     messageJoueur(){
+        if(this.peuxManger){
+            return super.messageJoueur();
+        }
         return "Vous avez **"+this.tempsDeJeu+"** secondes pour choisir un joueur qui sera votre modèle (/action [nom]). A sa mort, vous deviendrez **Loup-Garou** !";
     }
 
     messageChannel(){
-        return "\n-------------------------------\nL'enfant sauvage à **"+this.tempsDeJeu+"** secondes pour sélectionner 1 joueur qui deviendra son modèle !";
+        if(this.peuxManger){
+            return super.messageChannel();
+        }
+        return "\n-------------------------------\nL'**Enfant sauvage** à **"+this.tempsDeJeu+"** secondes pour sélectionner 1 joueur qui deviendra son modèle !";
     }
 
     async sendMessageRole(){
@@ -770,6 +778,120 @@ class EnfantSauvage extends LoupGarou{
     }
 }
 
+
+//---------------------------------------
+//|        INFECT PERE DES LOUPS        |
+//---------------------------------------
+
+class InfectPereDesLoups extends LoupGarou{
+    constructor(nom,id){
+        super(nom, id);
+        
+        this.subRole ="Infect_pere_des_loups";
+        this.getRole = function(){return this.subRole};
+
+        this.tempsDeJeu = 20;
+        this.peuxInfecter = true;
+        this.joueurInfecte = null;
+        this.joueurATuer = null
+    }
+
+    action(message, params){
+            
+        if(this.peuxManger){
+            super.action(message,params);
+        }else{ 
+            this.infecter(message,params);
+        }
+        
+    }
+
+    infecter(message,params){
+
+        if(params.length == 1 && this.estVivant && (this.peuxAgir && this.peuxInfecter)  && this.joueurATuer != null && !this.hasOwnProperty("noctambule")){
+                    
+            this.joueurInfecte = this.joueurATuer;
+            this.joueurInfecte.estInfecte = true;
+            this.peuxInfecter = false;
+            message.reply("Vous avez infecté **"+this.joueurATuer.nom+"**");
+            
+        }else{
+            message.reply("Vous n'avez pas le droit d'utilser cette commande !");
+        }
+        
+    }
+
+    infecteDeviensLG(tabJoueurs){
+        
+        this.joueurInfecte.subRole = this.joueurInfecte.role;
+        this.joueurInfecte.role = "Loup-Garou";
+        this.joueurInfecte.getRole = function(){return this.subRole};
+        this.joueurInfecte.votes = this.votes;
+        this.joueurInfecte.aVote = this.aVote;
+        this.joueurInfecte.peuxManger = false;
+
+        this.joueurInfecte.newAction = this.action;
+        this.joueurInfecte.newMessageJoueur = this.messageJoueur;
+        this.joueurInfecte.newMessageChannel = this.messageChannel;
+        
+
+        this.joueurInfecte.oldAction = this.joueurInfecte.action;
+        this.joueurInfecte.oldMessageJoueur = this.joueurInfecte.messageJoueur;
+        this.joueurInfecte.oldMessageChannel = this.joueurInfecte.messageChannel;
+
+        this.joueurInfecte.action = function(message, params){
+            if(this.peuxManger){
+                this.newAction(message,params);
+            }else{
+                this.oldAction(message,params);
+            }
+        }
+    
+        this.joueurInfecte.messageJoueur = function(){
+            if(this.peuxManger){
+                return this.newMessageJoueur();
+            }
+            return this.oldMessageJoueur();
+        }
+            
+    
+        this.joueurInfecte.messageChannel = function (){
+            if(this.peuxManger){
+                return this.newMessageChannel();
+            }
+            return this.oldMessageChannel();
+        }
+
+        this.joueurInfecte.voter = this.voter;
+
+        this.joueurInfecte.idJoueur.send("Vos conditions de victoire ont changé. Vous êtes à présent un **Loup-Garou**.\nVous conservez vos pouvoirs si vous en aviez et pouvez toujours les utilisers");
+        tool.annonceDesLoups(tabJoueurs);
+        delete this.joueurInfecte.estInfecte;
+
+    }
+    
+
+    messageJoueur(){
+        if(this.peuxManger){
+            return super.messageJoueur();
+        }else{
+            if(this.joueurATuer != null && this.peuxInfecter){
+                return "Vous avez **"+this.tempsDeJeu+"** secondes pour infecter ou non **"+ this.joueurATuer.nom +"** (/action ).\n S'il n'est pas protégé et qu'il survit cette nuit, il deviendra un **Loup-Garou**!";
+            }else{
+                return "Vous ne pouvez rien faire cette nuit";
+            }
+        }
+        
+    }
+
+    messageChannel(){
+        if(this.peuxManger){
+            return super.messageChannel();
+        }
+        return "\n-------------------------------\nL'**Infect père des loups** à **"+this.tempsDeJeu+"** secondes pour infecter le joueur désigné par les loups !";
+    }
+}
+
 exports.Player = Player;
 exports.Villageois = Villageois;
 exports.LoupGarou = LoupGarou;
@@ -783,3 +905,4 @@ exports.LoupGarouBlanc = LoupGarouBlanc;
 exports.AngDechu = AngDechu;
 exports.ChienLoup = ChienLoup;
 exports.EnfantSauvage = EnfantSauvage;
+exports.InfectPereDesLoups = InfectPereDesLoups;
