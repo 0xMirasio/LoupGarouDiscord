@@ -1,3 +1,4 @@
+const Discord = require('discord.js');
 
 
 module.exports = {
@@ -11,6 +12,10 @@ module.exports = {
         arr[j] = temp;
     }
     return arr;
+},
+
+ sleep : function(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
 },
 
 
@@ -203,7 +208,7 @@ containsIndice : function(nomJoueur, tabJoueurs){
     return -1;
 },
 
-checkFinJeu : function(tabJoueurs, angeDechu, lgb){
+checkFinJeu : function(tabJoueurs, angeDechu, lgb, jdf){
     var nbLoup = 0, 
     nbVillageois = 0;
     var amoureux = [];
@@ -224,6 +229,24 @@ checkFinJeu : function(tabJoueurs, angeDechu, lgb){
             }
 
             nbVillageois++;
+        }
+    }
+
+    if(jdf != -1 && jdf.estVivant){
+        if(jdf.getNbJoueursCharmes() == nbLoup+nbVillageois-1){
+            return [true,6];
+        }
+        if(amoureux.includes(jdf) && jdf.getNbJoueursCharmes() == nbLoup+nbVillageois-2){
+            let amoureuxCharme = [];
+            for(let joueur of amoureux){
+                if (jdf.joueursCharmes.includes(joueur)){
+                    amoureuxCharme.push(joueur);
+                }
+            }
+
+            if(amoureuxCharme.length == 0){
+                return [true,7];
+            }
         }
     }
 

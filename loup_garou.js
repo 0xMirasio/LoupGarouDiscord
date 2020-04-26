@@ -1,10 +1,13 @@
 const Discord = require('discord.js');
 const time = require('easytimer.js');
 const tool = require('./tool') ;
-const {Player, Villageois, LoupGarou, Chasseur, Voyante, Cupidon, Sorciere, Salvateur, Noctambule, LoupGarouBlanc, AngDechu, ChienLoup, EnfantSauvage, InfectPereDesLoups} = require('./joueur.js');
+const {Player, Villageois, LoupGarou, Chasseur, Voyante, Cupidon, Sorciere, Salvateur, Noctambule, LoupGarouBlanc, AngDechu, ChienLoup, EnfantSauvage, InfectPereDesLoups, JoueurDeFlute} = require('./joueur.js');
 const bot = new Discord.Client();
-const dictionnaire = new Map([["Voyante", Voyante],["Villageois", Villageois],["Loup-Garou",LoupGarou],["Chasseur", Chasseur], ["Cupidon",Cupidon], ["Sorciere",Sorciere], ["Salvateur",Salvateur],
-				["Noctambule", Noctambule], ["Loup_garou_blanc",LoupGarouBlanc], ["Ange_dechu", AngDechu],["Chien-loup",ChienLoup], ["Enfant-sauvage",EnfantSauvage], ["Infect_pere_des_loups",InfectPereDesLoups] ]);
+const dictionnaire = new Map([["Voyante", Voyante],["Villageois", Villageois],["Loup-Garou",LoupGarou],
+							["Chasseur", Chasseur], ["Cupidon",Cupidon], ["Sorciere",Sorciere], ["Salvateur",Salvateur],
+							["Noctambule", Noctambule], ["Loup_garou_blanc",LoupGarouBlanc], ["Ange", AngDechu],["Chien-loup",ChienLoup],
+							 ["Enfant-sauvage",EnfantSauvage], ["Pere_des_loups",InfectPereDesLoups], ["Joueur_flute", JoueurDeFlute] ]);
+const tabEmojiVotes = ['1️⃣','2️⃣','3️⃣','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣','🇦','🇧','🇨','🇩','🇪','🇫'];
 
 require('events').EventEmitter.defaultMaxListeners = 15;
 
@@ -12,7 +15,7 @@ bot.on('ready', function () {
   console.log("Connected")
 })
 
-bot.login('Njk5MDE0NDY0Nzc5MDU5MjEx.Xpnrvw.70wA3r4T4IXmIjXzH2hL4w5KNuU');
+bot.login('token here');
 
 // VAR GLOBAL SECTION
 var nbPlayer = 0;
@@ -22,7 +25,8 @@ var Players = [];
 var nbLoup = 0;
 var nbSV = 0; //Nombre de simples villageois
 // var Role = ["Loup","Sorcière","Voyante","Cupidon","Chasseur","LoupBlanc","Voleur","Villageois"];
-var rolesDispo = ["Sorciere","Voyante","Cupidon","Chasseur", "Noctambule", "Ange_dechu", "Chien-loup", "Salvateur", "Loup_garou_blanc", "Enfant-sauvage" , "Infect_pere_des_loups"];
+var rolesDispo = ["Sorciere","Voyante","Cupidon","Chasseur", "Noctambule",  "Chien-loup", "Salvateur", "Loup_garou_blanc", "Enfant-sauvage" , "Pere_des_loups", "Joueur_flute"];
+// "Ange",
 var rolesChoisis = [];
 var strRolesChoisis;
 var votes = []  //tableau pour le nombre de vote sur chaque joueur
@@ -31,14 +35,16 @@ var phaseVillage = false;
 var joueurATuer;  //Variable utilisée pour connaitre le joueur à tuer
 var max,index;
 var cpt=0;
-var sorciere, voyante, cupidon, chasseur, noctambule, angeDechu, chienLoup, salvateur, lgb, enfantSauvage, ipl; //Variable pour stocker les rôles spéciaux
+var sorciere, voyante, cupidon, chasseur, noctambule, angeDechu, chienLoup, salvateur, lgb, enfantSauvage, ipl, jdf; //Variable pour stocker les rôles spéciaux
 var amoureux = [];
-var messagesVotes = [];
-var ordrePremiereNuit = ["Chien-loup","Cupidon","Enfant-sauvage","Noctambule","Salvateur","Voyante","Loup-Garou","Loup_garou_blanc", "Infect_pere_des_loups", "Sorciere"];
-var ordreNuit = ["Noctambule","Salvateur","Voyante","Loup-Garou","Loup_garou_blanc", "Infect_pere_des_loups", "Sorciere"];
+var messagesVotes = [], joueursVotes = [];
+var ordrePremiereNuit = ["Chien-loup","Cupidon","Enfant-sauvage","Noctambule","Salvateur","Voyante","Loup-Garou","Loup_garou_blanc", "Pere_des_loups", "Sorciere", "Joueur_flute"];
+var ordreNuit = ["Noctambule","Salvateur","Voyante","Loup-Garou","Loup_garou_blanc", "Pere_des_loups", "Sorciere", "Joueur_flute"];
 var cptOrdre = 0;
 var embedPlayersMessage = null;
-
+var embedJeuPrincipal = null;
+var embedVotes = null;
+var votesCollector;
 
 
 //END OF VAR GLOBAL SECTION
@@ -61,10 +67,12 @@ bot.on('message', async message => {
 				if(embedPlayersMessage != null){
 					embedPlayersMessage.delete();
 				}
+
+				console.log(nomsJoueurs);
 				
                 hasStarted = 1;
 				nbPlayer = Players.length;
-				strRolesChoisis = tool.toStringRoles(rolesChoisis,nbLoup,nbSV);
+				 strRolesChoisis = tool.toStringRoles(rolesChoisis,nbLoup,nbSV);
 
                 // nbLoup = Math.floor(nbPlayer/4) +1;
                 // nbLoup = 2 // a changer, FOR DEBUG ONLY
@@ -92,7 +100,7 @@ bot.on('message', async message => {
 
 				noctambule = getJoueurRole("Noctambule", Players);
 
-				angeDechu = getJoueurRole("Ange_dechu", Players);
+				angeDechu = getJoueurRole("Ange", Players);
 
 				chienLoup = getJoueurRole("Chien-loup", Players);
 				if(chienLoup != -1){
@@ -116,11 +124,13 @@ bot.on('message', async message => {
 				}
 
 
-				ipl = getJoueurRole("Infect_pere_des_loups", Players);
+				ipl = getJoueurRole("Pere_des_loups", Players);
 				if(ipl != -1){
 					ipl.votes = votes;
 					ipl.aVote = aVote;
 				}
+
+				jdf = getJoueurRole("Joueur_flute", Players);
 
 				
 				console.log("Début de partie");
@@ -128,6 +138,8 @@ bot.on('message', async message => {
                 await tool.annonceRole(Players);
 				await tool.annonceDesLoups(Players);
 				await message.channel.send('**Début de la partie...**');
+				
+				await tool.sleep(2000);
 
                 game_start(message);       
             }
@@ -149,6 +161,7 @@ bot.on('message', async message => {
 				if(!tool.contains(nomJoueur, Players)){
 					
 					Players.push(new Player(nomJoueur,idJoueur));
+					nomsJoueurs.push(nomJoueur);
 
 					await nbPlayer++;
 					message.channel.send("Ajout de **" + nomJoueur + "** à la partie");
@@ -175,7 +188,7 @@ bot.on('message', async message => {
 });
 
 bot.on('message', async message =>{
-	if(message.content === '/menu' && embedPlayersMessage == null){
+	if(message.content === '/menu' && embedPlayersMessage == null && hasStarted === 0){
 		
 		var embedMessage = new Discord.MessageEmbed()
 			.setColor('#0099ff')
@@ -194,7 +207,6 @@ bot.on('message', async message =>{
 			}
 			
 			
-
 			const collectorCheck = embedPlayersMessage.createReactionCollector(filterCheck);
 			collectorCheck.on('collect', (reaction , user) =>{
 				let index = nomsJoueurs.indexOf(user.username);
@@ -205,7 +217,7 @@ bot.on('message', async message =>{
 					
 					Players.push(new Player(user.username,user));
 					nbPlayer++;
-					
+					console.log(Players);
 					nbLoup = Math.floor(nbPlayer/5) +1;
 					nbSV = nbPlayer-nbLoup-rolesChoisis.length;
 					if(nbSV<0){
@@ -223,6 +235,7 @@ bot.on('message', async message =>{
 				let newEmbed = new Discord.MessageEmbed(embedPlayersMessage.embeds[0]);
 				newEmbed.fields = fields;
 				embedPlayersMessage.edit(newEmbed);
+				
 			});
 
 
@@ -257,6 +270,7 @@ bot.on('message', async message =>{
 				let newEmbed = new Discord.MessageEmbed(embedPlayersMessage.embeds[0]);
 				newEmbed.fields = fields;
 				embedPlayersMessage.edit(newEmbed);
+
 			});
 	}
 });
@@ -276,6 +290,11 @@ bot.on('message', message => {
 			var retour = tool.retirerJoueur(nomJoueur,Players);
 			if(retour){
 				nbPlayer--;
+
+				let index = nomsJoueurs.indexOf(nomJoueur);
+				if(index !=-1){
+					nomsJoueurs.splice(index,1);
+				}
 
 				nbLoup = Math.floor(nbPlayer/5) +1;
 				nbSV= nbPlayer-nbLoup-rolesChoisis.length;
@@ -366,7 +385,7 @@ bot.on('message', message => {
 
 //Commande affichant la liste des autres commandes et leurs descriptions
 bot.on('message', message => {	
-	if (message.content === '/help') {
+	if (hasStarted === 0 && message.content === '/help') {
 		message.channel.send('Liste des commandes :  \n **/loupStart **Débute la partie **(ALL)** \n** /loupStop** Termine la partie  **(ALL)** \n **/play** Vous ajoute à la partie **(ALL)** \n **/leave** Quitte la partie **(ALL)** \n **/roleDispo** Liste des roles disponibles **(ALL)** \n **/roleList** Liste les roles de la partie  **(ALL)**\n **/add** Ajoute un role à la partie **(ALL)**\n **/del** Supprime un role de la partie **(ALL)** \n **/list** Affiche les joueurs vivants **(ALL)**\n');
 		message.channel.send("**/vote** [PLAYER] Votez un joueur que vous pensez être un loup **(ALL)** \n **/action** [PARAMETRE] Execute la commande associé à votre rôle et au déroulement du jeu (ex : tour de la voyante, **/action [nom]** permet de révéler un joueur) **(ALL)**\n");
 	}
@@ -409,7 +428,8 @@ bot.on('message', message => {
 		}else{
 			message.reply("Vous n'avez pas le droit d'utilisez cette commande ! ");
 		}
-		
+
+		// delMessage(message);
     }
 });
 
@@ -431,12 +451,18 @@ bot.on('message', message => {
 			Players[indexJoueur].action(message,params);
 		}	
 	}
+
+	// delMessage(message);
 			
 });
 
 //----------------------CLASSE ET FONCTIONS--------------------//
 
-
+function delMessage(message){
+	if (embedJeuPrincipal != null && message.channel == embedJeuPrincipal.channel){
+		message.delete();
+	}
+}
 
 //Attribue un rôle a chaque joueur aléatoirement en fonction des rôles choisis
 function generateIDs(n,nbLoup,tabJoueurs,tabRolesChoisis){
@@ -478,28 +504,69 @@ function generateIDs(n,nbLoup,tabJoueurs,tabRolesChoisis){
 
 
 //Permet de voter
-function voter(nomVotant, nomVote){
-	var votant = tool.containsIndice(nomVotant,Players);
-	var vote = tool.containsIndice(nomVote,Players);
+async function voter(nomVotant, nomVote){
+	let votant = tool.containsIndice(nomVotant,Players);
+	let vote = tool.containsIndice(nomVote,Players);
+	let ancienVote = -1;
 
 	//Si le joueur a déjà voté, on retire le vote précédent
 	if(aVote[votant] != -1){
+		ancienVote  = aVote[votant];
+
 		votes[aVote[votant]]--;
+
+		if(messagesVotes.length != 0 && joueursVotes.length != 0 ){
+			messagesVotes[ancienVote] =  votes[ancienVote]+" vote(s)"; 
+			joueursVotes[ancienVote] = "**"+Players[ancienVote].nom+"** --> "+ ((aVote[ancienVote] !=-1)? "**"+Players[aVote[ancienVote]].nom+"**" : "**Personne**");
+		}
+
 	}
 	
 	//On incrémente ensuite le nombre de vote du joueur voté 
-	votes[vote]++;
+	 votes[vote]++;
 	//On met a jour aVoté
-	aVote[votant] = vote;
+	 aVote[votant] = vote;
 
 	//On édite les messages de la liste des votes
-	if(messagesVotes.length != 0){
-		messagesVotes[votant].edit("**"+Players[votant].nom+"** : "+votes[votant]+".\t\t\t\t**"+Players[votant].nom+"** --> "+ ((aVote[votant] !=-1) ? "**"+Players[aVote[votant]].nom+"**" : "**rien**") );
-		messagesVotes[vote].edit("**"+Players[vote].nom+"** : "+votes[vote]+".\t\t\t\t**"+Players[vote].nom+"** --> "+ ((aVote[vote] !=-1)? "**"+Players[aVote[vote]].nom+"**" : "**rien**") );	
+	if(messagesVotes.length != 0 && joueursVotes.length != 0 ){
+
+		messagesVotes[votant] = votes[votant]+" votes(s)"; 
+		messagesVotes[vote] =  votes[vote]+" vote(s)"; 
+		joueursVotes[votant] = "**"+Players[votant].nom+"** --> "+ ((aVote[votant] !=-1) ? "**"+Players[aVote[votant]].nom+"**" : "**Personne**");
+		joueursVotes[vote] = "**"+Players[vote].nom+"** --> "+ ((aVote[vote] !=-1)? "**"+Players[aVote[vote]].nom+"**" : "**Personne**");
+
+		oldEmbedFields = embedVotes.embeds[0].fields;
+		newEmbedFields = [];
+		for(let i in Players){
+			if(i == votant || i == vote || (ancienVote !=-1 && i == ancienVote)){
+				newEmbedFields.push({
+					name : Players[i].nom,
+					value : messagesVotes[i],
+					inline : true
+				});
+				newEmbedFields.push({
+					name : joueursVotes[i],
+					value: '\u200b',
+					inline : true
+				});
+				newEmbedFields.push({
+					name : '\u200b',
+					value: '\u200b',
+					inline : true
+				});
+			}else {
+				newEmbedFields.push(oldEmbedFields[3*i], oldEmbedFields[3*i+1],oldEmbedFields[3*i+2]);
+			}
+
+		}
+		
+		let newEmbed = new Discord.MessageEmbed(embedVotes.embeds[0]);
+		newEmbed.fields = newEmbedFields;
+		await embedVotes.edit(newEmbed);
+			
 	}
 	
 }
-
 
 //Permet de tuer un joueur/les amoureux
 function kill(joueur){
@@ -519,25 +586,29 @@ function kill(joueur){
 	return -1;
 }
 
-async function messageTuer(message, joueurATuer){
+function messageTuer(joueurATuer){
+	let str = "";
 	let cptMort = 1;
 	retourKill = kill(joueurATuer);
-	await message.channel.send("**"+joueurATuer.nom+"** a été éliminé.e!\nIl/Elle etait **"+joueurATuer.getRole()+"**",{files : ["./img/"+joueurATuer.getRole()+".png"] });
-	cptMort += await checkAmoureux(message,retourKill);
+	str +=  "**"+joueurATuer.nom+"** a été éliminé.e!\nIl/Elle etait **"+joueurATuer.getRole()+"**\n";
 	
-	return cptMort;
+	let datas = checkAmoureux(retourKill);
+	cptMort+= datas[0];
+	str+= datas[1];
+	
+	return [cptMort,str];
 }
 
 
 //Check si un amoureux a été tué
 //Renvoie 1 si c'est le cas, 0 sinon
-function checkAmoureux(message, joueur){
+function checkAmoureux(joueur){
+	let str = "";
 	if(joueur != -1){
-		message.channel.send("**"+joueurATuer.nom+"** était, de plus, follement amoureux de **"+joueur.nom + "** !\nCe.tte dernier.e meurt malheureusement avec lui/elle, il/elle était **"+joueur.getRole()+"**",
-		{files : ["./img/"+joueur.getRole()+".png"] });
-		return 1;
+		str+=  "**"+joueurATuer.nom+"** était, de plus, follement amoureux de **"+joueur.nom + "** !\nCe.tte dernier.e meurt malheureusement avec lui/elle, il/elle était **"+joueur.getRole()+"**\n";
+		return [1,str];
 	}
-	return 0;
+	return [0,str];
 }
 
 
@@ -550,8 +621,11 @@ function getJoueurRole(role, tabJoueurs){
 
 
 //Tue ou non le(s) joueur(s) désigné(s) durant la nuit par les loups/loup blanc/sorcière
+
 async function deliberationNuit(message, joueurATuer){
-	var cptMort = 0;
+	let cptMort = 0;
+	let str = "";
+	let datas;
 	//Si les loups ont voté
 	
 	// console.log(joueurATuer);
@@ -559,7 +633,7 @@ async function deliberationNuit(message, joueurATuer){
 	if (max != 0) {
 		//Qu'il n'y a pas d'égalité
 		if (joueurATuer != null) {
-			
+
 			if(joueurATuer.hasOwnProperty('estSauve') || joueurATuer.hasOwnProperty("estInfecte") ){
 				if(joueurATuer.hasOwnProperty("estSauve")){
 					delete joueurATuer.estSauve;
@@ -567,8 +641,12 @@ async function deliberationNuit(message, joueurATuer){
 					ipl.infecteDeviensLG(Players);
 				}	
 			}else{
-				//Cas Amoureux
-				cptMort += await messageTuer(message,joueurATuer);
+				datas = messageTuer(joueurATuer);
+				cptMort += datas[0];
+				str+= datas[1];
+
+				console.log(datas, str);
+				 
 			}
 
 		}
@@ -583,22 +661,42 @@ async function deliberationNuit(message, joueurATuer){
 		if(lgb.aTueLoup.hasOwnProperty('estSauve')){
 			delete lgb.aTueLoup.estSauve;
 		}else{
-			cptMort += await messageTuer(message, lgb.aTueLoup);
+			datas = messageTuer(lgb.aTueLoup);
+			cptMort += datas[0];
+			str+= datas[1];
 		}
 	}
 
 	//Check si la sorcière a tué quelqu'un
 	if(sorciere !=-1 && sorciere.hasOwnProperty('aTue') && sorciere.aTue != null && sorciere.aTue.estVivant){	
 
-		cptMort += await messageTuer(message, sorciere.aTue);
+		datas = await messageTuer(sorciere.aTue);
+		cptMort += datas[0];
+		str+= datas[1];
 	
 	}
 
 
 	//Check le compteur de mort et les votes pour afficher la phrase correspondante
 	if(cptMort == 0){
-		message.channel.send("Personne n'est mort cette nuit..");
+		str += "Personne n'est mort cette nuit..";
 	}
+
+
+	console.log("avant crash  : " +str);
+	//Maj Embed du jeu principal
+	let embedFields = [{
+		name : '\u200b',
+		value : str
+	}];
+	let newEmbed = new Discord.MessageEmbed(embedJeuPrincipal.embeds[0])
+	.setDescription("FIN NUIT "+cpt);
+	newEmbed.fields = embedFields;
+	await embedJeuPrincipal.edit(newEmbed);
+
+	await tool.sleep(5000);
+	
+
 
 	//Enleve la propriété noctambule des joueurs
 	if(noctambule != -1 && noctambule.estVivant){
@@ -624,7 +722,9 @@ async function deliberationNuit(message, joueurATuer){
 
 //Tue ou non le(s) joueur(s) désigné(s) durant la journée par les villageois
 async function deliberationJour(message){
-	
+	let str = "";
+	let datas;
+
 	max = tool.resultatVote(votes);
 
 	if (max != 0)  {
@@ -633,14 +733,28 @@ async function deliberationJour(message){
 			
 			joueurATuer = Players[index];
 
-			messageTuer(message, joueurATuer);
+			datas = messageTuer(joueurATuer);
+			str+= datas[1];
 
 		}else{
-			message.channel.send("Les habitants n'ont pas réussi à se décider");
+			str += "Les habitants n'ont pas réussi à se décider";
 		}
 	}else{
-		message.channel.send("Les habitants n'ont voté pour personne");
+		str +="Les habitants n'ont voté pour personne";
 	}
+
+
+	//Maj Embed du jeu principal
+	let embedFields = [{
+		name : '\u200b',
+		value : str
+	}];
+	let newEmbed = new Discord.MessageEmbed(embedJeuPrincipal.embeds[0])
+	.setDescription("FIN JOUR "+cpt);
+	newEmbed.fields = embedFields;
+	await embedJeuPrincipal.edit(newEmbed);
+
+	await tool.sleep(5000);
 
 
 	// Check l'ange dechu
@@ -659,13 +773,31 @@ async function deliberationJour(message){
 }
 
 
-function game_start(message) {
+async function game_start(message) {
 	cpt++;
-	message.channel.send('DEBUT NUIT : '+ cpt);
-	// chienLoup_time(message);
 
+	if (embedJeuPrincipal == null){
+		let embedMessage = new Discord.MessageEmbed()
+			.setColor('#0099ff')
+			.setTitle('Jeu Principal')
+			.setAuthor(""+bot.user.username, 'https://icon-library.net/images/yellow-discord-icon/yellow-discord-icon-24.jpg')
+			.setThumbnail('https://i.pinimg.com/originals/06/ff/c8/06ffc8658488b63b89041cb300172d83.jpg')
+			.setDescription('NUIT '+ cpt)
+			
+			await message.channel.send(embedMessage)
+			.then(async embedMessage =>{ embedJeuPrincipal = await embedMessage})
+	}else{
+		let newEmbed = await new Discord.MessageEmbed(embedJeuPrincipal.embeds[0])
+		.setThumbnail('https://i.pinimg.com/originals/06/ff/c8/06ffc8658488b63b89041cb300172d83.jpg')
+		.setDescription('NUIT '+ cpt);
 
-	var arrayOrdre = [];
+		await embedJeuPrincipal.edit(newEmbed);
+	}
+	
+
+	https://i.pinimg.com/originals/06/ff/c8/06ffc8658488b63b89041cb300172d83.jpg
+
+	let arrayOrdre = [];
 	if(cpt == 1){
 		arrayOrdre = ordrePremiereNuit;
 	}else{
@@ -675,38 +807,69 @@ function game_start(message) {
 
 	var joueur = getJoueurRole(arrayOrdre[cptOrdre],Players);
 	joueur_time(message, joueur, arrayOrdre);
+
+	//TEST
+	// village_time(message);
 }
 
-async function terminerJeu(message){
-	var dataCheckFin = tool.checkFinJeu(Players,angeDechu,lgb);
-	var jeuEstFini = dataCheckFin[0];
-	var retourCheckFin = dataCheckFin[1];
+async function terminerJeu(){
+	let str ="";
+	let dataCheckFin = tool.checkFinJeu(Players,angeDechu,lgb, jdf);
+	let jeuEstFini = dataCheckFin[0];
+	let retourCheckFin = dataCheckFin[1];
 
 	if(jeuEstFini){
 		switch(retourCheckFin){
 			case 0 : 
-				await message.channel.send("La partie est terminée ! Les villageois ont gagnés !");
+				str+="La partie est terminée ! Les villageois ont gagnés !\n";
 				break;
 			case 1 :
-				await message.channel.send("La partie est terminée ! Les loups-garou ont gagné !");
+				str+="La partie est terminée ! Les loups-garou ont gagné !\n";
 				break;
 			case 2 :
-				await message.channel.send("La partie est terminée ! Personne n'a gagné !");
+				str+="La partie est terminée ! Personne n'a gagné !\n";
 				break;
 			case 3 :
-				await message.channel.send("La partie est terminée ! L'ange déchu a gagné !");
+				str+="La partie est terminée ! L'ange déchu a gagné !\n";
 				break;
 			case 4 :
-				await message.channel.send("La partie est terminée ! Le couple traitre : **"+amoureux[0].nom+"** et **"+amoureux[1].nom+"**; a gagné !"); 
+				str+="La partie est terminée ! Le couple traitre : **"+amoureux[0].nom+"** et **"+amoureux[1].nom+"**; a gagné !\n"; 
+				break;
 			case 5 : 
-				await message.channel.send("La partie est terminée ! le Loup-Garou Blanc a gagné!"); 
+				str+="La partie est terminée ! Le Loup-Garou Blanc a gagné!\n";
+				break;
+			case 6 :
+				str+="La partie est terminée ! Le Joueur de flute a gagné\n";
+				break;
+			case 7 : 
+				str+="La partie est terminée ! Les Amoureux ont gagné\n";
 		}
-		await message.channel.send("\n\n\n-----JOUEURS DE LA PARTIE-----\n");
+		str+="\n-----JOUEURS DE LA PARTIE-----\n";
 		
 		for(i = 0;i<Players.length;i++){
-			await message.channel.send("**"+Players[i]+ ((Players[i].hasOwnProperty('linked') ? " (Amoureux)" : "")) +"**\n");
+			str+= await "**"+Players[i]+ ((Players[i].hasOwnProperty('linked') ? " (Amoureux)" : "")) +"**\n";
+		}
+
+
+		//Maj Embed du jeu principal
+		let embedFields = [{
+			name : '\u200b',
+			value : str
+		}];
+		let newEmbed = new Discord.MessageEmbed(embedJeuPrincipal.embeds[0])
+		.setDescription("FIN JEU ");
+		newEmbed.fields = embedFields;
+		await embedJeuPrincipal.edit(newEmbed);
+
+		await tool.sleep(5000);
+
+
+		await embedJeuPrincipal.delete();
+		if(embedVotes != null){
+			await embedVotes.delete();
 		}
 		process.exit();
+
 	}
 }
 
@@ -762,28 +925,44 @@ async function joueur_time(message, joueur, arrayOrdre){
 
 async function joueur_time_action(message,joueur, arrayOrdre){
 	
-	await message.channel.send(joueur.messageChannel());
-	await joueur.idJoueur.send(joueur.messageJoueur());
+	
+	let embedFields = [{
+		name : '\u200b',
+		value : joueur.messageChannel()
+	}];
+
+	let newEmbed = new Discord.MessageEmbed(embedJeuPrincipal.embeds[0]);
+	newEmbed.fields = embedFields;
+	await embedJeuPrincipal.edit(newEmbed);
 	
 	if(!joueur.hasOwnProperty("noctambule")){
 		joueur.peuxAgir = true;
 	}
+	
+	await joueur.idJoueur.send(joueur.messageJoueur());
 
-	var tempsChrono = joueur.tempsDeJeu;
-	var timer = new time.Timer();
+	let tempsChrono = joueur.tempsDeJeu;
+	let timer = new time.Timer();
 
 	
 	timer.start({countdown: true, startValues: {seconds: tempsChrono}});
 	timer.addEventListener('secondsUpdated', function (e) {
 		if (timer.getTimeValues().toString().split("0:00:")[1] % 10 == 0 && timer.getTimeValues().toString().split("0:00:")[1] != '00') {
-			message.channel.send(timer.getTimeValues().toString().split("0:00:")[1] +" seconds left !");
+			
+			let embedFields = [embedJeuPrincipal.embeds[0].fields[0]]
+			embedFields.push({
+				name : 'Temps restant :',
+				value : timer.getTimeValues().toString().split("0:00:")[1]+" secondes ! "
+			});
+			let newEmbed = new Discord.MessageEmbed(embedJeuPrincipal.embeds[0]);
+			newEmbed.fields = embedFields;
+			embedJeuPrincipal.edit(newEmbed);
+
 		};
 	});
 
 	
 	timer.addEventListener('targetAchieved', async function (e) {
-
-		message.channel.send("**Fin du temps !\n**");
 
 		joueur.peuxAgir = false;
 
@@ -817,18 +996,30 @@ async function loup_time(message, arrayOrdre) {
 
 	tool.resetVotes(votes,aVote);
 
-	var loups=[];
+	var loups=[]
 
 	for(i=0;i<Players.length;i++){
 		if(Players[i].role == "Loup-Garou" && Players[i].estVivant){
-			Players[i].peuxManger = true;
-			Players[i].idJoueur.send(Players[i].messageJoueur());
 			loups.push(Players[i]);
 		}
 	}
 
-	await message.channel.send(loups[0].messageChannel());
-	await message.channel.send("/list");
+	let embedFields = [{
+		name : '\u200b',
+		value : loups[0].messageChannel()
+	}];
+	//TODO AJOUTER JOUEURS EN VIE
+
+	let newEmbed = new Discord.MessageEmbed(embedJeuPrincipal.embeds[0]);
+	newEmbed.fields = embedFields;
+	await embedJeuPrincipal.edit(newEmbed);
+
+
+
+	for(let loup of loups){
+		loup.idJoueur.send(loup.messageJoueur());
+		loup.peuxManger = true;
+	}
 	
 	var tempsChrono = loups[0].tempsDeJeu;
 
@@ -838,14 +1029,21 @@ async function loup_time(message, arrayOrdre) {
 	timer.start({countdown: true, startValues: {seconds: tempsChrono}});
 	timer.addEventListener('secondsUpdated', function (e) {
 		if (timer.getTimeValues().toString().split("0:00:")[1] % 10 == 0 && timer.getTimeValues().toString().split("0:00:")[1] != '00') {
-			message.channel.send(timer.getTimeValues().toString().split("0:00:")[1] +" seconds left !");
+
+			let embedFields = [embedJeuPrincipal.embeds[0].fields[0]]
+			embedFields.push({
+				name : 'Temps restant :',
+				value : timer.getTimeValues().toString().split("0:00:")[1]+" secondes ! "
+			});
+			let newEmbed = new Discord.MessageEmbed(embedJeuPrincipal.embeds[0]);
+			newEmbed.fields = embedFields;
+			embedJeuPrincipal.edit(newEmbed);
 		};
 	});
 
 	timer.addEventListener('targetAchieved', async function (e) {
-		message.channel.send("**Fin du temps !\n**");
 		
-		for(var loup of loups){
+		for(let loup of loups){
 			loup.peuxManger = false;
 		}
 
@@ -879,35 +1077,143 @@ async function loup_time(message, arrayOrdre) {
 
 //fonction village
 async function village_time(message){
-	phaseVillage = true;
-	joueurATuer = null;
 	
-	var timer = new time.Timer();
+	//Embed jeu Principal
+	let embedFields = []
+	embedFields.push({
+		name : '\u200b',
+		value : "-------------------------------\nLe village à **75** secondes pour décider de la personne à éliminer (/vote [nom]) !"
+	});
+	let newEmbed = new Discord.MessageEmbed(embedJeuPrincipal.embeds[0])
+	.setDescription("JOUR "+cpt)
+	.setThumbnail(' https://images.assetsdelivery.com/compings_v2/studiobarcelona/studiobarcelona1605/studiobarcelona160500031.jpg');
+	newEmbed.fields = embedFields;
 
-	//Récupère les messages pour la liste des votes
-	message.channel.send("-----Liste des votes-----")
+	await embedJeuPrincipal.edit(newEmbed);
+	
+
+	embedFields = [];	
+
 	for(i=0;i<Players.length;i++){
 		if(Players[i].estVivant){
-			await message.channel.send("**"+Players[i].nom+"** : "+votes[i]+".\t\t\t\t**"+Players[i].nom+"** --> "+ ((aVote[i] != -1)? "**"+Players[aVote[i]].nom+"**" : "**Personne**") )
-				.then( async message => await messagesVotes.push(message));
+			let nbVotes = votes[i]+" vote(s)" ;
+			let voteJoueur = "**"+Players[i].nom+"** --> "+ ((aVote[i] != -1)? "**"+Players[aVote[i]].nom+"**" : "**Personne**");
+
+			embedFields.push({
+				name : Players[i].nom,
+				value : nbVotes,
+				inline : true
+			 });
+			 embedFields.push({
+				 name : voteJoueur,
+				 value: '\u200b',
+				 inline : true
+			 })
+
+			 embedFields.push({
+				name : '\u200b',
+				value: '\u200b',
+				inline : true
+			})
+			
+			 messagesVotes.push(nbVotes);
+			 joueursVotes.push(voteJoueur);
 			
 		}else{
-			await messagesVotes.push(null);
+
+			embedFields.push({
+				name : Players[i]+" :x:",
+				value : '\u200b',
+				inline : true
+			})
+			embedFields.push({
+				 name : '\u200b',
+				 value: '\u200b',
+				 inline : true
+			 })
+
+			embedFields.push({
+				name : '\u200b',
+				value: '\u200b',
+				inline : true
+			})
 		}
 	}
+			
+
+	//Embed des votes
+	if(embedVotes == null){
+
+		let embedMessage = new Discord.MessageEmbed()
+		.setColor('#0099ff')
+		.setTitle('Liste des votes')
+		.setThumbnail('https://www.pngrepo.com/download/41069/village.png')
+		.setAuthor(""+bot.user.username, 'https://icon-library.net/images/yellow-discord-icon/yellow-discord-icon-24.jpg');
+		
+		embedMessage.fields = embedFields;
+
+		await message.channel.send(embedMessage)
+		.then(embedMessage => {embedVotes = embedMessage});
+
+		
+		for(i=0; i<Players.length;i++){
+			await embedVotes.react(tabEmojiVotes[i]);
+		}
+		
+		let filter = (reaction, user) =>{
+			return user.id != bot.user.id;
+		}
+		
+		votesCollector = embedVotes.createReactionCollector(filter);
+
+		console.log("sensé mettre le collect");
+		await votesCollector.on('collect', (reaction , user) =>{
+			let indexVotant = nomsJoueurs.indexOf(user.username);
+
+			if(Players[indexVotant].estVivant){
+				let indexVote = tabEmojiVotes.indexOf(reaction.emoji.name);
+				if(indexVote != -1){
+					if(Players[indexVote].estVivant){
+						voter(user.username, nomsJoueurs[indexVote]);
+					}
+				}
+			}
+
+		});
+		console.log("sensé se passer après le collect");
+
 	
-	message.channel.send("\n-------------------------------\nLe village à **75** secondes pour décider de la personne à éliminer (/vote [nom]) !");
-	message.channel.send("/list");
+	}else{
+		let newEmbed = new Discord.MessageEmbed(embedVotes.embeds[0]);
+		newEmbed.fields = embedFields;
+
+		await embedVotes.edit(newEmbed);
+	}
+	
+
+	
+	phaseVillage = true;
+	joueurATuer = null;
+
+	var timer = new time.Timer();
 
 	timer.start({countdown: true, startValues: {seconds: 20}});
 	timer.addEventListener('secondsUpdated', function (e) {
 			if (timer.getTimeValues().toString().split("0:00:")[1] % 10 == 0 && timer.getTimeValues().toString().split("0:00:")[1] != '00') {
-				message.channel.send(timer.getTimeValues().toString().split("0:00:")[1] +" seconds left !");
+				
+				let embedFields = [embedJeuPrincipal.embeds[0].fields[0]]
+				embedFields.push({
+					name : 'Temps restant :',
+					value : timer.getTimeValues().toString().split("0:00:")[1]+" secondes ! "
+				});
+				let newEmbed = new Discord.MessageEmbed(embedJeuPrincipal.embeds[0]);
+				newEmbed.fields = embedFields;
+				embedJeuPrincipal.edit(newEmbed);
+
 			};
 	});
 
 	timer.addEventListener('targetAchieved', function (e) {
-		message.channel.send("**Fin du temps !\n**");
 
 		phaseVillage = false;
 		messagesVotes = [];
@@ -916,15 +1222,23 @@ async function village_time(message){
 }
 
 
-
 //fonction chasseur
 async function chasseur_time(message, temps){
 	
 	if(chasseur != -1 && !chasseur.estVivant && chasseur.peuxAgir){
 
-		await message.channel.send(chasseur.messageChannel());
+
+		let embedFields = [{
+			name : '\u200b',
+			value : chasseur.messageChannel()
+		}];
+	
+		let newEmbed = new Discord.MessageEmbed(embedJeuPrincipal.embeds[0]);
+		newEmbed.fields = embedFields;
+		await embedJeuPrincipal.edit(newEmbed);
 		await chasseur.idJoueur.send(chasseur.messageJoueur());
 		
+
 		var tempsChrono = chasseur.tempsDeJeu;
 		var timer = new time.Timer();
 
@@ -932,21 +1246,42 @@ async function chasseur_time(message, temps){
 		timer.start({countdown: true, startValues: {seconds: tempsChrono}});
 		timer.addEventListener('secondsUpdated', function (e) {
 			if (timer.getTimeValues().toString().split("0:00:")[1] % 10 == 0 && timer.getTimeValues().toString().split("0:00:")[1] != '00') {
-				message.channel.send(timer.getTimeValues().toString().split("0:00:")[1] +" seconds left !");
+				
+				let embedFields = [embedJeuPrincipal.embeds[0].fields[0]]
+				embedFields.push({
+					name : 'Temps restant :',
+					value : timer.getTimeValues().toString().split("0:00:")[1]+" secondes ! "
+				});
+				let newEmbed = new Discord.MessageEmbed(embedJeuPrincipal.embeds[0]);
+				newEmbed.fields = embedFields;
+				embedJeuPrincipal.edit(newEmbed);
+
 			};
 		});
 
 		timer.addEventListener('targetAchieved', async function (e) {
-
-			message.channel.send("**Fin du temps !\n**");
-
 			chasseur.peuxAgir = false;
-			
+			let str = "";
+
 			if(chasseur.aTue != null){
-				await messageTuer(message, chasseur.aTue);
+				str =  messageTuer(chasseur.aTue)[1];
+			}else {
+				str+="Le chasseur n'a tué personne";
 			}
 
-			await terminerJeu(message);
+
+			let embedFields = [{
+				name : '\u200b',
+				value : str
+			}];
+		
+			let newEmbed = new Discord.MessageEmbed(embedJeuPrincipal.embeds[0]);
+			newEmbed.fields = embedFields;
+			await embedJeuPrincipal.edit(newEmbed);
+
+			await tool.sleep(5000);
+
+			await terminerJeu();
 
 			if(temps == "jour"){
 				game_start(message);
@@ -957,7 +1292,7 @@ async function chasseur_time(message, temps){
 		});
 	}else{
 
-		await terminerJeu(message);
+		await terminerJeu();
 		
 		if(temps == "jour"){
 			game_start(message);

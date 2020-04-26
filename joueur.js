@@ -1,8 +1,14 @@
+const Discord = require('discord.js');
 const tool = require('./tool') ;
 
 class Player{
 	constructor(nom, id, role){
-		this.nom = nom;
+        this.nom = "";
+        let datas = nom.split(" ");
+        for(let index in datas){
+            this.nom+=datas[index];
+        }
+		
 		this.idJoueur = id;
 		this.estVivant = true;
         this.role = role || null;
@@ -25,7 +31,7 @@ class Player{
         this.idJoueur.send("Vous n'avez aucun pouvoir");
     }
 
-   async sendMessageRole(){
+    async sendMessageRole(){
         await this.idJoueur.send("Vous êtes : **"+this.getRole()+"**", {files : ["./img/"+this.getRole()+".png"] });
         await this.idJoueur.send("Votre but est d'éliminer tous les **Loup-Garou**.");
     }
@@ -66,47 +72,47 @@ class LoupGarou extends Player{
 		if(params.length == 2 && this.estVivant && this.peuxManger && !this.hasOwnProperty("noctambule")){
 
 			
-            //Check que le joueur désigné existe 
-            var nomJoueurDesigne = params[0];
-            var tabJoueurs = params[1];
-
-            var indexJoueurDesigne = tool.containsIndice(nomJoueurDesigne, tabJoueurs);
-            if (indexJoueurDesigne == -1) {
-                message.reply("Ce joueur n'existe pas !");
-            //Check que le joueur désigné est en vie
-            }else if(!tabJoueurs[indexJoueurDesigne].estVivant){
-                message.reply("Ce joueur est déjà mort !");
-            }else if(this.nom == nomJoueurDesigne){
-                message.reply("Vous n'avez pas le droit de vous designer !");
-            }else if(tabJoueurs[indexJoueurDesigne].role == "Loup-Garou"){
-                message.reply("Vous n'avez pas le droit de désigner un autre Loup-Garou !");
-            }else{
-                //On vote pour le joueur désigné et on envoie un message aux autres loups
-                
-                await this.voter(this.nom, nomJoueurDesigne, tabJoueurs);
-                
-                message.reply("Vous souhaitez tuer **"+nomJoueurDesigne+"**");
-                
-                
-                var nomAutreLoup = "";
-                
-                for (i=0; i<tabJoueurs.length; i++) {
-                    if(tabJoueurs[i].role == "Loup-Garou" && tabJoueurs[i].nom != this.nom) {
-                        nomAutreLoup = tabJoueurs[i].nom;
-                        tabJoueurs[i].idJoueur.send("**"+this.nom +'** souhaite tuer **'+ nomJoueurDesigne+"**");
-                    }
-                }
-            }
-				
-		}else{
-			message.reply("Vous n'avez pas le droit d'utilser cette commande !");
-        }
+             //Check que le joueur désigné existe 
+             var nomJoueurDesigne = params[0];
+             var tabJoueurs = params[1];
+ 
+             var indexJoueurDesigne = tool.containsIndice(nomJoueurDesigne, tabJoueurs);
+             if (indexJoueurDesigne == -1) {
+                 message.reply("Ce joueur n'existe pas !");
+             //Check que le joueur désigné est en vie
+             }else if(!tabJoueurs[indexJoueurDesigne].estVivant){
+                 message.reply("Ce joueur est déjà mort !");
+             }else if(this.nom == nomJoueurDesigne){
+                 message.reply("Vous n'avez pas le droit de vous designer !");
+             }else if(tabJoueurs[indexJoueurDesigne].role == "Loup-Garou"){
+                 message.reply("Vous n'avez pas le droit de désigner un autre Loup-Garou !");
+             }else{
+                 //On vote pour le joueur désigné et on envoie un message aux autres loups
+                 
+                 await this.voter(this.nom, nomJoueurDesigne, tabJoueurs);
+                 
+                 message.reply("Vous souhaitez tuer **"+nomJoueurDesigne+"**");
+                 
+                 
+                 var nomAutreLoup = "";
+                 
+                 for (i=0; i<tabJoueurs.length; i++) {
+                     if(tabJoueurs[i].role == "Loup-Garou" && tabJoueurs[i].nom != this.nom) {
+                         nomAutreLoup = tabJoueurs[i].nom;
+                         tabJoueurs[i].idJoueur.send("**"+this.nom +'** souhaite tuer **'+ nomJoueurDesigne+"**");
+                     }
+                 }
+             }
+                 
+         }else{
+             message.reply("Vous n'avez pas le droit d'utilser cette commande !");
+         }
         
 
     }
 
     messageJoueur(){
-        var str="";
+        let str="";
         if(this.hasOwnProperty("noctambule")){
             str+= "Vous n'avez pas vos pouvoirs cette nuit !\n";
         }else{
@@ -116,7 +122,7 @@ class LoupGarou extends Player{
     }
 
     messageChannel(){
-        return "\n-------------------------------\nLes **Loup-Garou** ont **"+ this.tempsDeJeu +"** pour choisir leur victime...";
+        return "-------------------------------\nLes **Loup-Garou** ont **"+ this.tempsDeJeu +"** secondes pour choisir leur victime...";
     }
 
     async sendMessageRole(){
@@ -126,8 +132,8 @@ class LoupGarou extends Player{
 
 
     voter(nomVotant, nomVote, tabJoueurs){
-        var votant = tool.containsIndice(nomVotant,tabJoueurs);
-        var vote = tool.containsIndice(nomVote,tabJoueurs);
+        let votant = tool.containsIndice(nomVotant,tabJoueurs);
+        let vote = tool.containsIndice(nomVote,tabJoueurs);
     
         //Si le joueur a déjà voté, on retire le vote précédent
         if(this.aVote[votant] != -1){
@@ -159,10 +165,10 @@ class Chasseur extends Player{
 
         if(params.length == 2 && !this.estVivant && this.peuxAgir) {
 
-            var nomJoueurDesigne = params[0];
-            var tabJoueurs = params[1];
+            let nomJoueurDesigne = params[0];
+            let tabJoueurs = params[1];
 
-            var indexJoueurDesigne = tool.containsIndice(nomJoueurDesigne, tabJoueurs);
+            let indexJoueurDesigne = tool.containsIndice(nomJoueurDesigne, tabJoueurs);
 
             if (indexJoueurDesigne == -1) {
                 message.reply("Ce joueur n'existe pas !");
@@ -174,6 +180,7 @@ class Chasseur extends Player{
             }else if(this.nom == nomJoueurDesigne){
                 message.reply("Vous n'avez pas le droit de vous designer");
             }else{
+                this.peuxAgir = false;
                 this.aTue = tabJoueurs[indexJoueurDesigne];
                 message.reply("Vous souhaitez tuer **"+nomJoueurDesigne+"**");
             }
@@ -189,10 +196,10 @@ class Chasseur extends Player{
     }
 
     messageChannel(){
-        return "\n-------------------------------\nLe **Chasseur** à **"+this.tempsDeJeu+"** secondes pour se venger !";
+        return "-------------------------------\nLe **Chasseur** à **"+this.tempsDeJeu+"** secondes pour se venger !";
     }
 
-    
+      
 }
 
 
@@ -208,7 +215,7 @@ class Voyante extends Player{
         this.dejaVu.push(this);
     }
 
-    action(message, params){
+     action(message, params){
 
         if (params.length == 2 && this.estVivant && this.peuxAgir && !this.hasOwnProperty("noctambule")){
             var nomJoueurDesigne = params[0],
@@ -230,8 +237,8 @@ class Voyante extends Player{
                 }
         }else{
             message.reply("Vous n'avez pas le droit d'utilisez cette commande ! ");
-        }
-            
+        } 
+
     }
 
     messageJoueur(){
@@ -248,7 +255,7 @@ class Voyante extends Player{
     }
 
     messageChannel(){
-        return "\n-------------------------------\nLa **Voyante** a **"+this.tempsDeJeu+"** secondes pour reveler une personne...";
+        return "-------------------------------\nLa **Voyante** a **"+this.tempsDeJeu+"** secondes pour reveler une personne...";
     }
 
 
@@ -313,7 +320,7 @@ class Cupidon extends Player{
     }
 
     messageChannel(){
-        return "\n-------------------------------\n**Cupidon** à **"+this.tempsDeJeu+"** secondes pour sélectionner 2 personnes dont le destin sera lié pour le reste de la partie !";
+        return "-------------------------------\n**Cupidon** à **"+this.tempsDeJeu+"** secondes pour sélectionner 2 personnes dont le destin sera lié pour le reste de la partie !";
     }
 
 
@@ -404,7 +411,7 @@ class Sorciere extends Player{
     }
 
     messageChannel(){
-        return "\n-------------------------------\nLa **Sorcière** à **"+this.tempsDeJeu+"** secondes pour utiliser ses pouvoirs !";
+        return "-------------------------------\nLa **Sorcière** à **"+this.tempsDeJeu+"** secondes pour utiliser ses pouvoirs !";
     }
 
 }
@@ -456,7 +463,7 @@ class Salvateur extends Player{
     }
 
     messageChannel(){
-        return "\n-------------------------------\nLe **Salvateur** à **"+this.tempsDeJeu+"** secondes pour choisir une personne à protéger !";
+        return "-------------------------------\nLe **Salvateur** à **"+this.tempsDeJeu+"** secondes pour choisir une personne à protéger !";
     }
 
 
@@ -514,7 +521,7 @@ class Noctambule extends Player{
     }
 
     messageChannel(){
-        return "\n-------------------------------\nLe **Noctambule** à **"+this.tempsDeJeu+"** secondes pour décider chez qui il va aller dormir! Cette personne sera privée de ses pouvoirs pour la nuit";
+        return "-------------------------------\nLe **Noctambule** à **"+this.tempsDeJeu+"** secondes pour décider chez qui il va aller dormir! Cette personne sera privée de ses pouvoirs pour la nuit";
     }
 
     resetNoctambule(){
@@ -568,7 +575,7 @@ class LoupGarouBlanc extends LoupGarou{
                 str += "Vous n'avez pas vos pouvoirs cette nuit !";
             }else{
                 str+= this.idJoueur.send(tool.getLoupsGarou(this.tabJoueurs));
-                str+= "\nVous avez **"+this.tempsDeJeu+"** pour tuer ou non un **Loup-Garou** (/action [nom])!";   
+                str+= "\nVous avez **"+this.tempsDeJeu+"** secondes pour tuer ou non un **Loup-Garou** (/action [nom])!";   
             }
         }
         
@@ -579,7 +586,7 @@ class LoupGarouBlanc extends LoupGarou{
         if(this.peuxManger){
             return super.messageChannel();
         }
-       return "\n-------------------------------\nLe **Loup-Garou Blanc** a **"+this.tempsDeJeu+"** pour tuer un loup...";
+       return "-------------------------------\nLe **Loup-Garou Blanc** a **"+this.tempsDeJeu+"** secondes pour tuer un loup...";
     }
 
     async sendMessageRole(){
@@ -617,7 +624,7 @@ class LoupGarouBlanc extends LoupGarou{
 
 class AngDechu extends Player{
     constructor(nom,id){
-        super(nom, id, "Ange_dechu");
+        super(nom, id, "Ange");
      
         this.peuxGagner = false;
     }
@@ -694,7 +701,7 @@ class ChienLoup extends LoupGarou{
         if(this.peuxManger){
             return super.messageChannel();
         }
-        return "\n-------------------------------\nLe **Chien-Loup** a **"+this.tempsDeJeu+"** secondes pour choisir son camp";
+        return "-------------------------------\nLe **Chien-Loup** a **"+this.tempsDeJeu+"** secondes pour choisir son camp";
     }
 
     async sendMessageRole(){
@@ -761,7 +768,7 @@ class EnfantSauvage extends LoupGarou{
         if(this.peuxManger){
             return super.messageChannel();
         }
-        return "\n-------------------------------\nL'**Enfant sauvage** à **"+this.tempsDeJeu+"** secondes pour sélectionner 1 joueur qui deviendra son modèle !";
+        return "-------------------------------\nL'**Enfant sauvage** à **"+this.tempsDeJeu+"** secondes pour sélectionner 1 joueur qui deviendra son modèle !";
     }
 
     async sendMessageRole(){
@@ -787,7 +794,7 @@ class InfectPereDesLoups extends LoupGarou{
     constructor(nom,id){
         super(nom, id);
         
-        this.subRole ="Infect_pere_des_loups";
+        this.subRole ="Pere_des_loups";
         this.getRole = function(){return this.subRole};
 
         this.tempsDeJeu = 20;
@@ -875,7 +882,9 @@ class InfectPereDesLoups extends LoupGarou{
         if(this.peuxManger){
             return super.messageJoueur();
         }else{
-            if(this.joueurATuer != null && this.peuxInfecter){
+            if(this.hasOwnProperty("noctambule")){
+                return "Vous n'avez pas vos pouvoirs cette nuit !\n";
+            }else if(this.joueurATuer != null && this.peuxInfecter){
                 return "Vous avez **"+this.tempsDeJeu+"** secondes pour infecter ou non **"+ this.joueurATuer.nom +"** (/action ).\n S'il n'est pas protégé et qu'il survit cette nuit, il deviendra un **Loup-Garou**!";
             }else{
                 return "Vous ne pouvez rien faire cette nuit";
@@ -888,8 +897,112 @@ class InfectPereDesLoups extends LoupGarou{
         if(this.peuxManger){
             return super.messageChannel();
         }
-        return "\n-------------------------------\nL'**Infect père des loups** à **"+this.tempsDeJeu+"** secondes pour infecter le joueur désigné par les loups !";
+        return "-------------------------------\nL'**Infect père des loups** à **"+this.tempsDeJeu+"** secondes pour infecter le joueur désigné par les loups !";
     }
+}
+
+
+//-------------------------------
+//|       JOUEUR DE FLUTE       |
+//-------------------------------
+
+class JoueurDeFlute extends Player{
+    constructor(nom,id){
+        super(nom,id,"Joueur_flute");
+
+        this.joueursCharmes = []
+    }
+
+    async action(message,params){
+        if( (params.length == 3 || params.length == 2) && this.peuxAgir && this.estVivant && !this.hasOwnProperty("noctambule") ){
+
+            let joueur1 = params[0];
+            let joueur2;
+            let tabJoueurs;
+
+            if(params.length == 3){
+                joueur2 = params[1];
+                tabJoueurs = params[2];
+            }else{
+                joueur2 = params[0];
+                tabJoueurs = params[1];
+            }
+
+			let index1 = tool.containsIndice(joueur1, tabJoueurs);
+            let index2 = tool.containsIndice(joueur2, tabJoueurs);
+            
+            if (index1 == -1 || index2 == -1) {
+				message.reply("Un des joueurs n'existe pas !");
+            }
+            else if(!tabJoueurs[index1].estVivant || !tabJoueurs[index2].estVivant){
+                message.reply("L'un des joueurs est mort !");
+            }else if(this.joueursCharmes.includes(tabJoueurs[index1]) || this.joueursCharmes.includes(tabJoueurs[index2])){
+                message.reply("L'un des joueurs est déjà charmé !");
+            }else if(tabJoueurs[index1] == this || tabJoueurs[index2] == this){
+                message.reply("Vous n'avez pas le droit de vous charmer !");
+            }else{
+               await tabJoueurs[index1].idJoueur.send("Vous êtes à présent charmé par le **Joueur de flute** (aucun effet)");
+                this.joueursCharmes.push(tabJoueurs[index1]);
+
+                if(params.length == 3){
+                   await tabJoueurs[index2].idJoueur.send("Vous êtes à présent charmé par le **Joueur de flute** (aucun effet)");
+                    this.joueursCharmes.push(tabJoueurs[index2]);
+                }
+                
+                
+                this.envoyerMessageJoueursCharmes();
+            }
+
+        }else{
+            message.reply("Vous n'avez pas le droit d'utiliser cette commande");
+        }
+    }
+
+    envoyerMessageJoueursCharmes(){
+        let str = "-----LISTE DES JOUEURS CHARMES----\n"
+        let joueursCharmesVivant = []
+        for(let joueurCharme of this.joueursCharmes){
+            if(joueurCharme.estVivant){
+                str+="**"+joueurCharme.nom+"**  ";
+                joueursCharmesVivant.push(joueurCharme);
+            }
+        }
+
+        for(let joueurCharme of joueursCharmesVivant){
+            joueurCharme.idJoueur.send(str);
+        }
+
+    }
+
+    getNbJoueursCharmes(){
+        let cpt = 0;
+        for(let joueurCharme of this.joueursCharmes){
+            if(joueurCharme.estVivant){
+               cpt++
+            }
+        }
+        return cpt;
+    }
+
+    messageJoueur(){
+        let str="";
+        if(this.hasOwnProperty("noctambule")){
+            str+= "Vous n'avez pas vos pouvoirs cette nuit !\n";
+        }else{
+            str+= "Vous avez **"+this.tempsDeJeu+"** secondes pour désigner jusqu'à 2 joueurs à charmer (/action [nom1] [nom2])";
+        }
+        return str;
+    }
+
+    messageChannel(){
+        return "-------------------------------\nLe **Joueur de flute** à **"+this.tempsDeJeu+"** secondes pour charmer jusqu'à 2 joueurs !";
+    }
+
+    async sendMessageRole(){
+        await this.idJoueur.send("Vous êtes : **"+this.getRole()+"**", {files : ["./img/"+this.getRole()+".png"] });
+        await this.idJoueur.send("Votre but est de charmer tous les joueurs.");
+    }
+
 }
 
 exports.Player = Player;
@@ -906,3 +1019,4 @@ exports.AngDechu = AngDechu;
 exports.ChienLoup = ChienLoup;
 exports.EnfantSauvage = EnfantSauvage;
 exports.InfectPereDesLoups = InfectPereDesLoups;
+exports.JoueurDeFlute = JoueurDeFlute;
